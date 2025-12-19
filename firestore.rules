@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== CẤU HÌNH BÍ MẬT =====
+    match /config/{doc} {
+      allow read, write: if false;
+    }
+
+    // ===== HÀM TIỆN ÍCH QUYỀN =====
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+             currentUserDoc().data.role == 'admin';
+    }
+
+    function isBrandOwner() {
+      return isSignedIn() &&
+        (currentUserDoc().data.role == 'brandowner' ||
+         currentUserDoc().data.role == 'brand_owner');
+    }
+
+    // ===== USERS =====
+    match /users/{userId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // ===== BRANDS =====
+    match /brands/{brandId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // ===== GENERATIONS =====
+    match /generations/{doc} {
+      allow read, write: if request.auth != null;
+      
+      // Allow access to comments subcollection
+      match /comments/{commentId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+    
+    // ===== AUDITORS =====
+    match /auditors/{docId} {
+      allow read, create: if request.auth != null;
+    }
+
+    // ===== BRAND_ANALYTICS (MỚI) =====
+    match /brand_analytics/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // ===== BRAND_GUIDELINES =====
+    match /brand_guidelines/{docId} {
+      // Đọc: Bất kỳ user đã login
+      allow read: if isSignedIn();
+      // Tạo: Admin hoặc Brand Owner
+      allow create: if isAdmin() || isBrandOwner();
+      // Update/Delete: Chỉ admin
+      allow update, delete: if isAdmin();
+      // Subcollection chunks
+      match /chunks/{chunkId} {
+        allow read: if isSignedIn();
+        allow write: if false;
+      }
+    }
+    // ===== MẶC ĐỊNH: CHẶN HẾT =====
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
