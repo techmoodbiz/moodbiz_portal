@@ -7,20 +7,79 @@ export interface User {
   ownedBrandIds?: string[];
   assignedBrandIds?: string[];
   avatar?: string;
-  name?: string; // Firestore field
+  name?: string;
   id?: string;
 }
 
 export interface Brand {
   id: string;
   name: string;
-  personality: string;
-  voice: string;
+  // 1. Định danh cốt lõi
+  legal_name?: string;
+  slug?: string;
+  logo_url?: string;
+  primary_color?: string;
+  secondary_colors?: string[];
+  slogan?: string;
+  tagline?: string;
+  industry?: string;
+  category?: string;
+  country?: string;
+
+  // 2. Chiến lược & Định vị
+  mission?: string;
+  vision?: string;
+  brand_promise?: string;
+  positioning_statement?: string;
+  core_values?: string[];
+  usp?: string[];
+  target_segments?: string[];
+
+  // 3. Quy chuẩn nội dung (cho AI)
+  personality: string; 
+  brand_personality?: string[]; 
+  voice: string; 
+  tone_of_voice?: string;
+  do_words?: string[];
+  dont_words?: string[];
+  style_rules?: string;
+  visual_rules?: string;
+
   auditCriteria?: string;
   summary?: string;
+  last_guideline_updated_at?: any;
 }
 
-// Removed ContentStatus type
+export interface Persona {
+  id: string;
+  brand_id: string;
+  name: string;
+  jobTitle: string;
+  industry: string;
+  goals: string;
+  painPoints: string;
+  preferredLanguage: string;
+}
+
+export interface Product {
+  id: string;
+  brand_id: string;
+  name: string;
+  description: string;
+  features: string[];
+  benefits: string[];
+  usp: string; 
+  pricing?: string;
+}
+
+export interface ContentTemplate {
+  id: string;
+  brand_id: string;
+  name: string;
+  structure: 'AIDA' | 'PAS' | 'H-P-I-S-C' | 'Storytelling';
+  description: string;
+  prompt_skeleton: string;
+}
 
 export interface Generation {
   id: string;
@@ -30,17 +89,19 @@ export interface Generation {
   input_data: {
     platform: string;
     topic: string;
+    persona_id?: string;
+    product_id?: string;
+    template_id?: string;
   };
   output_data: string;
-  citations?: string[]; // Array of source references
+  citations?: string[];
   timestamp: any;
-  // status field removed
   last_updated?: any;
 }
 
 export interface Comment {
   id: string;
-  parentId: string; // generation_id
+  parentId: string;
   userId: string;
   userName: string;
   userRole: string;
@@ -58,11 +119,10 @@ export interface Auditor {
   input_data: {
     rawText: string;
     text: string;
-    url?: string; // New field for URL auditing
+    url?: string;
   };
   output_data: any;
   timestamp: any;
-  common_mistakes_context?: any[];
 }
 
 export interface Guideline {
@@ -71,6 +131,7 @@ export interface Guideline {
   type: string;
   status: 'pending' | 'approved' | 'rejected';
   file_name: string;
+  is_primary?: boolean; // New: Marks the consolidated master guideline
   description?: string;
   guideline_text?: string;
   file_url?: string;

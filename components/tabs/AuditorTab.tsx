@@ -113,7 +113,6 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
         const content = await scrapeWebsiteContent(targetUrl);
         return { content, finalUrl: targetUrl };
     } catch (err: any) {
-        // Retry logic: Toggle www.
         let retryUrl = targetUrl;
         if (targetUrl.includes('//www.')) retryUrl = targetUrl.replace('//www.', '//');
         else retryUrl = targetUrl.replace('//', '//www.');
@@ -139,10 +138,9 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
     let textToAudit = auditText;
     let finalUrl = "";
 
-    // If URL mode, scrape first
     if (inputType === 'url') {
        if (!auditUrl) { setToast({type:'error', message: 'Vui lòng nhập URL'}); return; }
-       setIsAuditing(true); // Show loading immediately
+       setIsAuditing(true);
        setAuditResult(null);
        
        try {
@@ -150,7 +148,7 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
           if (scraped?.content) {
              textToAudit = scraped.content;
              finalUrl = scraped.finalUrl;
-             setAuditText(scraped.content); // Update text area for review
+             setAuditText(scraped.content);
           } else {
              throw new Error("Không lấy được nội dung từ link này.");
           }
@@ -167,7 +165,6 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
 
     const mistakesText = commonMistakes.length > 0 ? commonMistakes.map(m => `- ${m.type} (${m.count} lần)`).join('\n') : "Chưa có dữ liệu lỗi.";
     
-    // Retrieve latest approved guideline text
     const approvedGuide = guidelines.find(g => g.brand_id === brand.id && g.status === 'approved');
     const guideContext = approvedGuide?.guideline_text ? `GUIDELINE:\n${approvedGuide.guideline_text}\n` : '';
 
@@ -196,21 +193,22 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
         catch { outputData = { rawText: outputData, isParsed: false }; }
       }
 
-      // --- SCORE NORMALIZATION LOGIC ---
       let finalScore = outputData.overall_score || 0;
       if (finalScore <= 1 && finalScore > 0) finalScore *= 100;
       else if (finalScore <= 5 && finalScore > 1) finalScore *= 20;
       else if (finalScore <= 10 && finalScore > 5) finalScore *= 10;
       outputData.overall_score = finalScore;
-      // ----------------------------------
 
       const issues = outputData.identified_issues || [];
       const canPublish = (Math.round(outputData.overall_score || 0)) >= 80 && !issues.some((i: any) => ['High', 'Medium'].includes(i.severity));
       const finalResult = { ...outputData, canPublish, content_type: auditContentType };
       setAuditResult(finalResult);
 
-      // Save History
-      await db.collection('auditors').add({
+      const timestamp = Date.now();
+      const auditId = `AUD_${brand.id}_${timestamp}`;
+
+      await db.collection('auditors').doc(auditId).set({
+        id: auditId,
         type: 'auditor',
         brand_id: brand.id,
         brand_name: brand.name,
@@ -226,7 +224,6 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
         output_data: finalResult,
       });
 
-      // Update Analytics
       await updateAnalytics(brand.id, issues);
 
       setToast({type:'success', message: 'Audit hoàn tất!'});
@@ -263,7 +260,6 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
               <BrandSelector availableBrands={availableBrands} selectedBrandId={selectedBrandId} onChange={setSelectedBrandId} disabled={isAuditing} />
             </div>
 
-            {/* Visualize Common Mistakes */}
             {commonMistakes.length > 0 && (
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-2 text-amber-700 font-bold text-xs uppercase tracking-wide">
@@ -301,7 +297,6 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
                </div>
             </div>
 
-            {/* Input Type Toggle */}
             <div>
                <label className="text-xs font-bold text-[#102d62] uppercase tracking-wide mb-2 block">Nguồn nội dung</label>
                <div className="flex bg-slate-100 p-1 rounded-xl mb-3">
@@ -344,7 +339,6 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
                         <p className="font-bold flex items-center gap-2 mb-1"><Globe size={12}/> Lưu ý:</p>
                         AI sẽ tự động đọc nội dung từ link và tiến hành Audit. Hãy đảm bảo link công khai và không bị chặn bot.
                      </div>
-                     {/* Preview scraped text if available */}
                      {auditText && (
                         <div className="mt-2">
                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nội dung đã quét được:</label>
@@ -368,7 +362,6 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
         <div className="lg:col-span-8">
           {auditResult ? (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 pb-20">
-              {/* Score Card */}
               <div className="bg-[#102d62] rounded-2xl p-8 text-white relative overflow-hidden shadow-lg">
                 <div className="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-l from-[#01ccff]/20 to-transparent"></div>
                 <div className="flex justify-between items-center relative z-10">
@@ -386,7 +379,6 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
                 </div>
               </div>
 
-              {/* WEBSITE SPECIFIC ANALYSIS */}
               {auditResult.content_type === 'website' && (
                 <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-inner">
                     <h3 className="text-sm font-bold text-[#102d62] uppercase tracking-wide mb-4 flex items-center gap-2">
@@ -399,7 +391,6 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
                         {renderScoreBar("Conversion", auditResult.conversion_assessment?.score || 0, <MousePointer size={16}/>, "text-emerald-600")}
                     </div>
 
-                    {/* Detailed Checks */}
                     <div className="grid md:grid-cols-2 gap-4">
                         <div className="bg-white p-4 rounded-xl border border-slate-100">
                             <h4 className="text-xs font-bold text-blue-800 uppercase mb-2">SEO Insights</h4>
@@ -417,7 +408,6 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
                         </div>
                     </div>
 
-                    {/* Meta Suggestions */}
                     {auditResult.seo_assessment?.meta_suggestions && (
                         <div className="mt-4 bg-white p-4 rounded-xl border border-blue-100">
                             <h4 className="text-xs font-bold text-[#102d62] uppercase mb-3">Gợi ý Meta Tags</h4>
@@ -436,9 +426,7 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
                 </div>
               )}
 
-              {/* Assessments Grid (Social + Website General) */}
               <div className="grid md:grid-cols-2 gap-6">
-                {/* Personality */}
                 {auditResult.brand_personality_assessment && (
                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                       <h4 className="text-sm font-bold text-[#102d62] uppercase tracking-wide mb-4 flex items-center gap-2"><Users size={16}/> Personality Check</h4>
@@ -456,7 +444,6 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
                       </div>
                    </div>
                 )}
-                {/* Voice */}
                 {auditResult.brand_voice_assessment && (
                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                       <h4 className="text-sm font-bold text-[#102d62] uppercase tracking-wide mb-4 flex items-center gap-2"><MessageSquare size={16}/> Voice Check</h4>
@@ -475,7 +462,6 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
                 )}
               </div>
 
-              {/* Issues Table */}
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                  <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50"><h4 className="text-sm font-bold text-[#102d62] uppercase tracking-wide">Vấn đề phát hiện</h4></div>
                  {auditResult.identified_issues?.length > 0 ? (
@@ -506,7 +492,6 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
                  )}
               </div>
 
-              {/* Rewritten */}
               {auditResult.rewritten_text && (
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative group">
                    <div className="flex justify-between items-center mb-4"><h4 className="text-sm font-bold text-[#102d62] uppercase tracking-wide flex items-center gap-2"><Sparkles size={16} className="text-[#01ccff]"/> Phiên bản tối ưu</h4><button onClick={() => handleCopy(auditResult.rewritten_text)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-[#01ccff] transition-colors"><Copy size={16}/></button></div>
@@ -514,7 +499,6 @@ const AuditorTab: React.FC<AuditorTabProps> = ({
                 </div>
               )}
 
-              {/* Tips */}
               {auditResult.improvement_tips?.length > 0 && (
                 <div className="bg-amber-50 rounded-2xl border border-amber-100 p-6">
                    <h4 className="text-sm font-bold text-amber-800 uppercase tracking-wide mb-3 flex items-center gap-2"><Lightbulb size={16}/> Tips cải thiện</h4>

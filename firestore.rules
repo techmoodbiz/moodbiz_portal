@@ -1,76 +1,86 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ===== CẤU HÌNH BÍ MẬT =====
-    match /config/{doc} {
-      allow read, write: if false;
-    }
-
     // ===== HÀM TIỆN ÍCH QUYỀN =====
-    function currentUserDoc() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid));
-    }
-
     function isSignedIn() {
       return request.auth != null;
     }
 
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function isAdmin() {
-      return isSignedIn() &&
-             currentUserDoc().data.role == 'admin';
+      return isSignedIn() && getUserData().role == 'admin';
     }
 
     function isBrandOwner() {
-      return isSignedIn() &&
-        (currentUserDoc().data.role == 'brandowner' ||
-         currentUserDoc().data.role == 'brand_owner');
+      return isSignedIn() && (getUserData().role == 'brand_owner' || getUserData().role == 'brandowner');
     }
 
     // ===== USERS =====
     match /users/{userId} {
-      allow read, write: if request.auth != null;
+      // User đọc chính mình, Admin/Owner đọc được danh sách
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin() || isBrandOwner());
+      // Chỉ Admin hoặc Owner mới được tạo/sửa user
+      allow write: if isAdmin() || isBrandOwner();
     }
 
     // ===== BRANDS =====
     match /brands/{brandId} {
-      allow read, write: if request.auth != null;
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isBrandOwner();
     }
 
     // ===== GENERATIONS =====
     match /generations/{doc} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isSignedIn();
       
-      // Allow access to comments subcollection
       match /comments/{commentId} {
-        allow read, write: if request.auth != null;
+        allow read, write: if isSignedIn();
       }
     }
     
     // ===== AUDITORS =====
     match /auditors/{docId} {
-      allow read, create: if request.auth != null;
+      allow read, create, update: if isSignedIn();
     }
 
-    // ===== BRAND_ANALYTICS (MỚI) =====
+    // ===== BRAND_ANALYTICS =====
     match /brand_analytics/{docId} {
-      allow read, write: if request.auth != null;
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isBrandOwner();
     }
 
     // ===== BRAND_GUIDELINES =====
     match /brand_guidelines/{docId} {
-      // Đọc: Bất kỳ user đã login
       allow read: if isSignedIn();
-      // Tạo: Admin hoặc Brand Owner
-      allow create: if isAdmin() || isBrandOwner();
-      // Update/Delete: Chỉ admin
-      allow update, delete: if isAdmin();
-      // Subcollection chunks
+      allow write: if isAdmin() || isBrandOwner();
+      
       match /chunks/{chunkId} {
         allow read: if isSignedIn();
-        allow write: if false;
+        allow write: if isAdmin();
       }
     }
+
+    // ===== BRAND ASSETS =====
+    match /personas/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isBrandOwner();
+    }
+
+    match /products/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isBrandOwner();
+    }
+
+    match /content_templates/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isBrandOwner();
+    }
+
     // ===== MẶC ĐỊNH: CHẶN HẾT =====
     match /{document=**} {
       allow read, write: if false;
