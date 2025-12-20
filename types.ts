@@ -1,4 +1,5 @@
 
+
 export interface User {
   uid: string;
   email: string | null;
@@ -50,37 +51,6 @@ export interface Brand {
   last_guideline_updated_at?: any;
 }
 
-export interface Persona {
-  id: string;
-  brand_id: string;
-  name: string;
-  jobTitle: string;
-  industry: string;
-  goals: string;
-  painPoints: string;
-  preferredLanguage: string;
-}
-
-export interface Product {
-  id: string;
-  brand_id: string;
-  name: string;
-  description: string;
-  features: string[];
-  benefits: string[];
-  usp: string; 
-  pricing?: string;
-}
-
-export interface ContentTemplate {
-  id: string;
-  brand_id: string;
-  name: string;
-  structure: 'AIDA' | 'PAS' | 'H-P-I-S-C' | 'Storytelling';
-  description: string;
-  prompt_skeleton: string;
-}
-
 export interface Generation {
   id: string;
   brand_id: string;
@@ -89,9 +59,6 @@ export interface Generation {
   input_data: {
     platform: string;
     topic: string;
-    persona_id?: string;
-    product_id?: string;
-    template_id?: string;
   };
   output_data: string;
   citations?: string[];
@@ -131,7 +98,7 @@ export interface Guideline {
   type: string;
   status: 'pending' | 'approved' | 'rejected';
   file_name: string;
-  is_primary?: boolean; // New: Marks the consolidated master guideline
+  is_primary?: boolean;
   description?: string;
   guideline_text?: string;
   file_url?: string;
@@ -161,4 +128,38 @@ export interface SystemPrompts {
     social: string;
     website: string;
   };
+}
+
+// Added missing Persona interface definition to fix import errors in PersonasTab.tsx
+export interface Persona {
+  id: string;
+  brand_id: string;
+  name: string;
+  jobTitle: string;
+  industry: string;
+  goals: string;
+  painPoints: string;
+  preferredLanguage: string;
+}
+
+// Added missing Product interface definition to fix import errors in ProductsTab.tsx
+export interface Product {
+  id: string;
+  brand_id: string;
+  name: string;
+  description: string;
+  features: string[];
+  benefits: string[];
+  usp: string;
+  pricing: string;
+}
+
+// Added missing ContentTemplate interface definition to fix import errors in TemplatesTab.tsx
+export interface ContentTemplate {
+  id: string;
+  brand_id: string;
+  name: string;
+  structure: 'AIDA' | 'PAS' | 'Storytelling' | 'H-P-I-S-C';
+  description: string;
+  prompt_skeleton: string;
 }

@@ -1,9 +1,9 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Hash, Monitor, RefreshCw, Sparkles, Copy, AlertTriangle, BookOpen, FileText, Globe, Info, ShieldCheck, UserCircle, Package, ClipboardList, Zap, Target, Database, PenTool } from 'lucide-react';
-import { Brand, SystemPrompts, User, Auditor, Guideline, Persona, Product, ContentTemplate } from '../../types';
-import { SectionHeader, BrandSelector, TemplateCard } from '../UIComponents';
-import { GEN_TEMPLATES, SUPPORTED_LANGUAGES, PLATFORM_CONFIGS } from '../../constants';
+import React, { useState, useMemo } from 'react';
+import { Hash, RefreshCw, Sparkles, Copy, Database, PenTool } from 'lucide-react';
+import { Brand, SystemPrompts, User, Auditor, Guideline } from '../../types';
+import { SectionHeader, BrandSelector } from '../UIComponents';
+import { SUPPORTED_LANGUAGES, PLATFORM_CONFIGS } from '../../constants';
 import { generateContent } from '../../services/api';
 import firebase, { db } from '../../firebase';
 
@@ -32,19 +32,7 @@ const GeneratorTab: React.FC<GeneratorTabProps> = ({
   const [genPlatform, setGenPlatform] = useState('Facebook Post');
   const [genLanguage, setGenLanguage] = useState('Vietnamese');
   const [genResult, setGenResult] = useState('');
-  const [citations, setCitations] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-
-  const [personas, setPersonas] = useState<Persona[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedPersonaId, setSelectedPersonaId] = useState('');
-  const [selectedProductId, setSelectedProductId] = useState('');
-
-  useEffect(() => {
-    if (!selectedBrandId) return;
-    db.collection('personas').where('brand_id', '==', selectedBrandId).get().then(s => setPersonas(s.docs.map(d => ({id:d.id, ...d.data()} as Persona))));
-    db.collection('products').where('brand_id', '==', selectedBrandId).get().then(s => setProducts(s.docs.map(d => ({id:d.id, ...d.data()} as Product))));
-  }, [selectedBrandId]);
 
   const approvedGuidelines = useMemo(() => 
     guidelines.filter(g => g.brand_id === selectedBrandId && g.status === 'approved'),
@@ -69,8 +57,6 @@ const GeneratorTab: React.FC<GeneratorTabProps> = ({
 
   const handleGenerate = async () => {
     const brand = availableBrands.find(b => b.id === selectedBrandId);
-    const persona = personas.find(p => p.id === selectedPersonaId);
-    const product = products.find(p => p.id === selectedProductId);
 
     if (!brand) { setToast({type: 'error', message: "Chưa chọn thương hiệu."}); return; }
     
@@ -83,9 +69,6 @@ const GeneratorTab: React.FC<GeneratorTabProps> = ({
     
     const platformRules = PLATFORM_CONFIGS[genPlatform] || '';
 
-    const personaDetails = persona ? `TARGET: ${persona.name} (${persona.jobTitle})\nGOALS: ${persona.goals}\nPAIN POINTS: ${persona.painPoints}` : 'N/A';
-    const productDetails = product ? `PRODUCT: ${product.name}\nUSP: ${product.usp}\nDESCRIPTION: ${product.description}` : 'N/A';
-
     const systemPrompt = systemPrompts.generator
       .replace(/{brand_name}/g, brand.name)
       .replace(/{brand_personality}/g, brand.brand_personality?.join(', ') || brand.personality)
@@ -93,13 +76,9 @@ const GeneratorTab: React.FC<GeneratorTabProps> = ({
       .replace(/{language}/g, genLanguage)
       .replace(/{platform}/g, genPlatform)
       .replace(/{platform_rules}/g, platformRules)
-      .replace(/{persona_details}/g, personaDetails)
-      .replace(/{product_details}/g, productDetails)
-      .replace(/{template_details}/g, "Tuân thủ cấu trúc chuẩn của kênh.")
       .replace(/{common_mistakes}/g, mistakesText)
       .replace(/{rag_context}/g, `Sử dụng Brand Knowledge Base.`);
 
-    // Tập hợp context từ approved guidelines
     const context = approvedGuidelines.map(g => `[${g.file_name}]: ${g.guideline_text || ''}`).join('\n\n---\n\n');
 
     try {
@@ -113,7 +92,6 @@ const GeneratorTab: React.FC<GeneratorTabProps> = ({
       });
 
       setGenResult(data.result);
-      setCitations(data.citations || []);
       
       const timestamp = Date.now();
       const genId = `GEN_${brand.id}_${timestamp}`;
@@ -123,7 +101,7 @@ const GeneratorTab: React.FC<GeneratorTabProps> = ({
         brand_id: brand.id,
         user_id: currentUser.uid,
         user_name: currentUser.name || currentUser.displayName,
-        input_data: { platform: genPlatform, topic: genTopic, persona_id: selectedPersonaId, product_id: selectedProductId },
+        input_data: { platform: genPlatform, topic: genTopic },
         output_data: data.result,
         citations: data.citations || [],
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -137,7 +115,7 @@ const GeneratorTab: React.FC<GeneratorTabProps> = ({
 
   return (
     <div className="animate-in fade-in h-full flex flex-col">
-      <SectionHeader title="Content Generator" subtitle="AI tự động gom các tài liệu Approved để viết nội dung chuẩn xác." />
+      <SectionHeader title="Content Generator" subtitle="AI tự động soạn thảo nội dung từ hồ sơ thương hiệu Approved." />
       
       <div className="grid lg:grid-cols-12 gap-8 flex-1">
         <div className="lg:col-span-4 space-y-6">
@@ -160,24 +138,8 @@ const GeneratorTab: React.FC<GeneratorTabProps> = ({
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[#102d62] uppercase tracking-wide mb-2 flex items-center gap-2"><UserCircle size={14}/> Đối tượng mục tiêu</label>
-              <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#01ccff]" value={selectedPersonaId} onChange={e => setSelectedPersonaId(e.target.value)}>
-                <option value="">-- Mặc định --</option>
-                {personas.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-[#102d62] uppercase tracking-wide mb-2 flex items-center gap-2"><Package size={14}/> Sản phẩm/Dịch vụ</label>
-              <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#01ccff]" value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)}>
-                <option value="">-- Tổng quan Brand --</option>
-                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
-
-            <div>
               <label className="text-xs font-bold text-[#102d62] uppercase tracking-wide mb-2 flex items-center gap-2"><Hash size={14}/> Chủ đề hoặc Yêu cầu</label>
-              <textarea className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm min-h-[80px] font-medium outline-none focus:border-[#01ccff] placeholder:text-slate-300" placeholder="VD: Khai trương chi nhánh mới..." value={genTopic} onChange={e => setGenTopic(e.target.value)} />
+              <textarea className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm min-h-[120px] font-medium outline-none focus:border-[#01ccff] placeholder:text-slate-300" placeholder="VD: Khai trương chi nhánh mới..." value={genTopic} onChange={e => setGenTopic(e.target.value)} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

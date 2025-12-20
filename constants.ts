@@ -2,7 +2,7 @@
 import { 
   Zap, Handshake, Target, Shield, LayoutDashboard, PenTool, 
   Activity, FileText, BarChart2, Settings, Users, Building2, 
-  BookOpen, UserCircle, Package, ClipboardList 
+  BookOpen
 } from 'lucide-react';
 
 export const THEME = {
@@ -39,10 +39,6 @@ export const NAV_ITEMS = [
   { type: 'header', label: 'AI Lab Tools' },
   { type: 'link', id: 'generator', icon: PenTool, label: 'Content Generator' },
   { type: 'link', id: 'auditor', icon: Activity, label: 'Voice Auditor' },
-  { type: 'header', label: 'Brand Assets' },
-  { type: 'link', id: 'personas', icon: UserCircle, label: 'Audience Personas' },
-  { type: 'link', id: 'products', icon: Package, label: 'Products & Services' },
-  { type: 'link', id: 'templates', icon: ClipboardList, label: 'Content Frameworks' },
   { type: 'header', label: 'AI History', role: ['admin', 'brand_owner'] },
   { type: 'link', id: 'generations', icon: FileText, label: 'Generator History', role: ['admin', 'brand_owner'] },
   { type: 'link', id: 'audits', icon: FileText, label: 'Auditor History', role: ['admin', 'brand_owner'] },
@@ -82,15 +78,6 @@ export const DEFAULT_GEN_PROMPT = `Bạn là Trợ lý AI của {brand_name}.
 Nhiệm vụ: Viết bài đăng cho kênh {platform} về chủ đề: "{topic}".
 
 QUAN TRỌNG: NGÔN NGỮ ĐẦU RA LÀ {language}.
-
-[HÀNH TRÌNH KHÁCH HÀNG & PERSONA]
-{persona_details}
-
-[SẢN PHẨM & DỊCH VỤ]
-{product_details}
-
-[KHUNG NỘI DUNG (FRAMEWORK)]
-{template_details}
 
 THÔNG TIN THƯƠNG HIỆU:
 [TÍNH CÁCH THƯƠNG HIỆU]

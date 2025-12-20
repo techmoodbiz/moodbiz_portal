@@ -21,9 +21,6 @@ import UsersTab from './components/tabs/UsersTab';
 import BrandsTab from './components/tabs/BrandsTab';
 import GuidelinesTab from './components/tabs/GuidelinesTab';
 import SettingsTab from './components/tabs/SettingsTab';
-import PersonasTab from './components/tabs/PersonasTab';
-import ProductsTab from './components/tabs/ProductsTab';
-import TemplatesTab from './components/tabs/TemplatesTab';
 import firebase from './firebase';
 
 const App = () => {
@@ -101,7 +98,6 @@ const App = () => {
     return qGen.onSnapshot(snap => setGenerations(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Generation))), err => console.error("Permission denied on generations list"));
   }, [currentUser]);
 
-  // Fix: Completed truncated guideline subscription and added missing logic
   useEffect(() => {
     if (!currentUser) return;
     const unsub = db.collection("brand_guidelines").orderBy("created_at", "desc").onSnapshot(snap => {
@@ -110,7 +106,6 @@ const App = () => {
     return unsub;
   }, [currentUser]);
 
-  // Fix: Added missing subscriptions for users and auditors
   useEffect(() => {
     if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'brand_owner')) return;
     
@@ -128,7 +123,6 @@ const App = () => {
     };
   }, [currentUser]);
 
-  // Derived state: Brands the current user has access to
   const availableBrands = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.role === 'admin') return brands;
@@ -148,7 +142,6 @@ const App = () => {
     }
   }, [availableBrands, selectedBrandId]);
 
-  // Handlers
   const handleDeleteUser = (id: string) => {
     showConfirm("Xóa người dùng", "Bạn có chắc chắn muốn xóa tài khoản này?", async () => {
       try {
@@ -188,7 +181,7 @@ const App = () => {
     }
   };
 
-  if (!authReady) return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-bold text-[#102d62] animate-pulse">Initializing...</div>;
+  if (!authReady) return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-bold text-navy animate-pulse">Initializing...</div>;
   if (!currentUser) return <LoginScreen onLogin={setCurrentUser} />;
 
   const renderTabContent = () => {
@@ -203,58 +196,76 @@ const App = () => {
       case 'brands': return <BrandsTab availableBrands={availableBrands} currentUser={currentUser} setEditingBrand={setEditingBrand} setIsBrandModalOpen={setIsBrandModalOpen} handleDeleteBrand={handleDeleteBrand} />;
       case 'guidelines': return <GuidelinesTab guidelines={guidelines} availableBrands={availableBrands} brands={brands} currentUser={currentUser} setToast={setToast} showConfirm={showConfirm} />;
       case 'settings': return <SettingsTab systemPrompts={systemPrompts} setSystemPrompts={setSystemPrompts} showConfirm={showConfirm} setToast={setToast} />;
-      case 'personas': return <PersonasTab availableBrands={availableBrands} selectedBrandId={selectedBrandId} />;
-      case 'products': return <ProductsTab availableBrands={availableBrands} selectedBrandId={selectedBrandId} />;
-      case 'templates': return <TemplatesTab availableBrands={availableBrands} selectedBrandId={selectedBrandId} />;
       default: return <DashboardTab currentUser={currentUser} showLoading={!brandsLoaded} availableBrands={availableBrands} setActiveTab={setActiveTab} generations={generations} auditors={auditors} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] flex font-sans">
+    <div className="min-h-screen bg-[#f1f5f9] flex font-sans">
       <MenuToggle isOpen={isSidebarOpen} toggle={() => setIsSidebarOpen(!isSidebarOpen)} />
 
-      {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-40 w-72 bg-[#102d62] text-white transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl flex flex-col`}>
-        <div className="p-8 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#01ccff] rounded-xl flex items-center justify-center font-black text-blue-900 shadow-lg shadow-cyan-400/20">M</div>
-          <span className="text-xl font-extrabold tracking-tight">MOODBIZ <span className="text-[#01ccff]">AI</span></span>
+        {/* Logo Section */}
+        <div className="p-10 flex items-center gap-4">
+          <div className="w-12 h-12 bg-[#01ccff] rounded-2xl flex items-center justify-center font-black text-[#102d62] shadow-[0_0_20px_rgba(1,204,255,0.3)] text-xl">M</div>
+          <span className="text-2xl font-black tracking-tight">MOODBIZ <span className="text-[#01ccff]">AI</span></span>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1 custom-scrollbar">
+        {/* Navigation Items */}
+        <nav className="flex-1 overflow-y-auto px-6 py-4 space-y-2 custom-scrollbar">
           {NAV_ITEMS.map((item, idx) => {
             if (item.type === 'header') {
               if (item.role && !item.role.includes(currentUser.role)) return null;
-              return <div key={idx} className="px-4 pt-6 pb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.label}</div>;
+              return (
+                <div key={idx} className="px-4 pt-8 pb-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] opacity-80">
+                  {item.label}
+                </div>
+              );
             }
             if (item.role && !item.role.includes(currentUser.role)) return null;
             const Icon = item.icon!;
+            const isActive = activeTab === item.id;
+            
             return (
-              <button key={item.id} onClick={() => { setActiveTab(item.id!); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all group ${activeTab === item.id ? 'bg-[#01ccff] text-[#102d62] shadow-lg shadow-cyan-400/20' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}>
-                <Icon size={18} className={`${activeTab === item.id ? 'text-[#102d62]' : 'text-slate-400 group-hover:text-[#01ccff]'}`} />
+              <button 
+                key={item.id} 
+                onClick={() => { setActiveTab(item.id!); setIsSidebarOpen(false); }} 
+                className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl text-[14px] font-bold transition-all duration-300 group ${
+                  isActive 
+                    ? 'bg-[#01ccff] text-[#102d62] shadow-[0_8px_24px_-4px_rgba(1,204,255,0.4)]' 
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <Icon 
+                  size={20} 
+                  strokeWidth={isActive ? 2.5 : 2}
+                  className={`${isActive ? 'text-[#102d62]' : 'text-slate-400 group-hover:text-[#01ccff]'}`} 
+                />
                 {item.label}
               </button>
             );
           })}
         </nav>
 
-        <div className="p-4 mt-auto">
-          <button onClick={() => auth.signOut()} className="w-full flex items-center justify-between px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl transition-colors font-bold text-sm group">
-            <div className="flex items-center gap-3">
-              <LogOut size={18} /> Đăng xuất
-            </div>
-            <X size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+        {/* Logout Section */}
+        <div className="p-6">
+          <button 
+            onClick={() => auth.signOut()} 
+            className="w-full flex items-center gap-4 px-5 py-4 bg-white/5 hover:bg-white/10 text-[#f87171] rounded-2xl transition-all duration-300 font-bold text-sm group"
+          >
+            <LogOut size={20} strokeWidth={2.5} /> 
+            <span>Đăng xuất</span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 md:ml-72 p-4 md:p-8 lg:p-12 relative min-h-screen">
-        {renderTabContent()}
+        <div className="max-w-[1600px] mx-auto h-full">
+          {renderTabContent()}
+        </div>
 
-        {/* Toast Notification */}
         {toast && (
-          <div className={`fixed bottom-8 right-8 z-[100] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-right-10 ${toast.type === 'success' ? 'bg-emerald-500 text-white' : toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-[#102d62] text-white'}`}>
+          <div className={`fixed bottom-8 right-8 z-[100] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-right-10 ${toast.type === 'success' ? 'bg-emerald-500 text-white' : toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-navy text-white'}`}>
             {toast.type === 'success' ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
             <span className="font-bold text-sm">{toast.message}</span>
           </div>
@@ -268,5 +279,4 @@ const App = () => {
   );
 };
 
-// Fix: Added missing default export
 export default App;
