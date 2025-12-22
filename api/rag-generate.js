@@ -80,7 +80,7 @@ async function getConsolidatedContext(brandId, queryEmbedding = null, topK = 12)
 module.exports = async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 
     if (req.method === "OPTIONS") return res.status(200).end();
     if (req.method !== "POST") return res.status(405).json({ error: "Only POST allowed" });
@@ -125,10 +125,16 @@ ${userText ? `Ghi chú: ${userText}` : ""}
 ${systemPrompt}
 `;
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: finalPrompt }] }] })
+            body: JSON.stringify({ 
+              contents: [{ parts: [{ text: finalPrompt }] }],
+              config: {
+                temperature: 0.7,
+                topP: 0.95
+              }
+            })
         });
 
         const data = await response.json();

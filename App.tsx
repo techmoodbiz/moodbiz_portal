@@ -126,15 +126,29 @@ const App = () => {
     });
   }, [currentUser]);
 
+  // Updated Auditor and User fetch logic to support Content Creator's Insight Hub
   useEffect(() => {
-    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'brand_owner')) return;
+    if (!currentUser || currentUser.role === 'viewer') return;
     
-    const unsubUsers = db.collection("users").onSnapshot(snap => {
-      setUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
-    });
+    // Users management still restricted to admin/owner
+    let unsubUsers = () => {};
+    if (currentUser.role === 'admin' || currentUser.role === 'brand_owner') {
+      unsubUsers = db.collection("users").onSnapshot(snap => {
+        setUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
+      });
+    }
     
+    // Auditor data for Insight Hub: Admin sees all, Others see assigned/owned brands
     const unsubAuditors = db.collection("auditors").orderBy("timestamp", "desc").onSnapshot(snap => {
-      setAuditors(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Auditor)));
+      const allAudits = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Auditor));
+      
+      if (currentUser.role === 'admin') {
+        setAuditors(allAudits);
+      } else if (currentUser.role === 'brand_owner') {
+        setAuditors(allAudits.filter(a => currentUser.ownedBrandIds?.includes(a.brand_id)));
+      } else if (currentUser.role === 'content_creator') {
+        setAuditors(allAudits.filter(a => currentUser.assignedBrandIds?.includes(a.brand_id)));
+      }
     });
 
     return () => {
@@ -180,6 +194,11 @@ const App = () => {
     }
   };
 
+  const handleLoginSuccess = (user: User) => {
+    setCurrentUser(user);
+    setActiveTab('dashboard'); // Force transition to dashboard upon login
+  };
+
   const renderTabContent = () => {
     if (!currentUser) return null;
 
@@ -211,7 +230,7 @@ const App = () => {
   }
 
   if (!currentUser) {
-    return <LoginScreen onLogin={setCurrentUser} />;
+    return <LoginScreen onLogin={handleLoginSuccess} />;
   }
 
   return (
