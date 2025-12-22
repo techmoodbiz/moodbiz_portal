@@ -1,5 +1,4 @@
 
-
 import { 
   Zap, Handshake, Target, Shield, LayoutDashboard, PenTool, 
   Activity, FileText, BarChart2, Settings, Users, Building2, 
@@ -22,58 +21,55 @@ export const SUPPORTED_LANGUAGES = [
 ];
 
 export const AUDIT_CATEGORIES = {
-  language: { label: "Ngôn ngữ", icon: Languages, color: "text-blue-500", bg: "bg-blue-50", description: "Ngữ pháp, hành văn (MD Rules)." },
-  ai_logic: { label: "AI & Logic", icon: BrainCircuit, color: "text-purple-500", bg: "bg-purple-50", description: "Bịa thông tin, sai brief (MD Rules)." },
-  brand: { label: "Thương hiệu", icon: Award, color: "text-[#102d62]", bg: "bg-slate-100", description: "Brand Voice & Tone (Dynamic)." },
-  product: { label: "Sản phẩm", icon: ShoppingBag, color: "text-emerald-500", bg: "bg-emerald-50", description: "Thông số & USP (Database)." }
+  language: { label: "Ngôn ngữ", icon: Languages, color: "text-blue-500", bg: "bg-blue-50", description: "Ngữ pháp, hành văn & SOP." },
+  ai_logic: { label: "AI & Logic", icon: BrainCircuit, color: "text-purple-500", bg: "bg-purple-50", description: "Độ xác thực và logic nội dung." },
+  brand: { label: "Thương hiệu", icon: Award, color: "text-[#102d62]", bg: "bg-slate-100", description: "Brand Voice, Tone & Persona." },
+  product: { label: "Sản phẩm", icon: ShoppingBag, color: "text-emerald-500", bg: "bg-emerald-50", description: "USP, Thông số & Giá trị SP." }
 };
 
-/* Added missing GLOBAL_AUDIT_STANDARDS used in HistoryGenerationsTab */
 export const GLOBAL_AUDIT_STANDARDS = `
-1. Accuracy: Ensure all information is factual and consistent with brand guidelines.
-2. Tone: Maintain the specified brand voice and personality.
-3. Grammar: Use correct grammar, spelling, and punctuation.
-4. Compliance: Adhere to safety and legal requirements.
-5. Clarity: Ensure content is clear, concise, and easy to understand.
+1. Accuracy: Đảm bảo thông tin xác thực, không bịa đặt.
+2. Tone: Tuân thủ đúng giọng văn thương hiệu.
+3. Grammar: Đúng ngữ pháp, không lỗi chính tả.
+4. Compliance: Không vi phạm các từ cấm (Don't words).
+5. Clarity: Nội dung rõ ràng, dễ hiểu.
 `;
 
-export const SOCIAL_AUDIT_PROMPT = `Bạn là Chuyên gia Content Auditor.
+export const SOCIAL_AUDIT_PROMPT = `Bạn là Chuyên gia Content Auditor cấp cao của MOODBIZ.
 
 NHIỆM VỤ:
-Kiểm duyệt văn bản dựa trên các quy chuẩn Markdown (SOP) được cung cấp dưới đây.
-
-YÊU CẦU CỰC KỲ QUAN TRỌNG:
-- "problematic_text" phải là TRÍCH NGUYÊN VĂN từ bản gốc.
-- Phải đối soát cực kỳ nghiêm ngặt với các file SOP đính kèm.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📖 SOP RULES (DYNAMIC FROM DATABASE)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{dynamic_rules}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Kiểm duyệt văn bản dựa trên hồ sơ thương hiệu và quy chuẩn SOP Markdown.
 
 [HỒ SƠ THƯƠNG HIỆU]
 Brand: {brand_name}
-Personality: {brand_personality}
-Voice: {brand_voice}
-Guideline: {guideline}
+Personality (Tính cách): {brand_personality}
+Voice/Tone (Giọng văn): {brand_voice}
+Core Values (Giá trị cốt lõi): {core_values}
+✅ Do-Words (Nên dùng): {do_words}
+❌ Don't-Words (Từ cấm/Tránh dùng): {dont_words}
 
-VĂN BẢN CẦN QUÉT:
+[QUY CHUẨN SOP BỔ SUNG]
+{dynamic_rules}
+
+[TÀI LIỆU KNOWLEDGE BASE]
+{guideline}
+
+VĂN BẢN CẦN KIỂM TRA:
 "{text}"
 
 YÊU CẦU ĐẦU RA (JSON ONLY):
 {
-  "summary": "Tóm tắt rủi ro",
+  "summary": "Tóm tắt ngắn gọn tình trạng tuân thủ",
   "identified_issues": [
     {
       "category": "language / ai_logic / brand / product",
-      "problematic_text": "TRÍCH NGUYÊN VĂN",
-      "reason": "Tại sao lỗi (dựa trên SOP nào)",
+      "problematic_text": "TRÍCH NGUYÊN VĂN TỪ BẢN GỐC",
+      "reason": "Giải thích chi tiết lỗi dựa trên SOP hoặc Brand Profile",
       "severity": "High / Medium / Low",
-      "suggestion": "Cách sửa"
+      "suggestion": "Cách sửa đổi cụ thể"
     }
   ],
-  "rewritten_text": "Bản thảo đã sạch lỗi"
+  "rewritten_text": "Bản thảo đã được tối ưu sạch lỗi và chuẩn hóa theo Brand Profile"
 }`;
 
 export const WEBSITE_AUDIT_PROMPT = SOCIAL_AUDIT_PROMPT;
@@ -99,16 +95,19 @@ export const NAV_ITEMS = [
 
 export const PLATFORM_CONFIGS: Record<string, string> = {
   'Website / SEO Blog': `- CẤU TRÚC: H1, H2, H3, CTA.`,
-  'Facebook Post': `- Hook, Short segments, CTA.`,
+  'Facebook Post': `- Hook, Đoạn ngắn, CTA.`,
   'LinkedIn Article': `- PHONG CÁCH: B2B Expert.`,
   'Email Marketing': `- MỤC TIÊU: Click-through.`
 };
 
-export const DEFAULT_GEN_PROMPT = `Bạn là chuyên gia content của {brand_name}.
+export const DEFAULT_GEN_PROMPT = `Bạn là chuyên gia Content Strategy cho {brand_name}.
 {rag_context}
 Platform: {platform}
 Language: {language}
-Product Info: {product_context}
+Product Context: {product_context}
+Brand Persona: {brand_personality}
+Tone of Voice: {brand_voice}
+Avoid Words: {dont_words}
 `;
 
 export const COMPANY_STATS = [

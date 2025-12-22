@@ -1,5 +1,4 @@
 
-
 export interface User {
   uid: string;
   email: string | null;
@@ -15,9 +14,9 @@ export interface User {
 export interface AuditRule {
   id: string;
   type: 'language' | 'ai_logic' | 'brand' | 'product';
-  code: string; // VD: Vietnamese, Global_AI_Logic
+  code: string; 
   label: string;
-  content: string; // Nội dung Markdown
+  content: string; 
   updated_at: any;
 }
 
@@ -62,6 +61,7 @@ export interface Generation {
   input_data: {
     platform: string;
     topic: string;
+    language: string; // Added missing language info
     product_id?: string;
   };
   output_data: string;
@@ -82,6 +82,7 @@ export interface Auditor {
     text: string;
     url?: string;
     language?: string;
+    platform?: string;
   };
   output_data: any;
   timestamp: any;
@@ -146,7 +147,6 @@ export interface Product {
     key_results?: string[];
     media_links?: { title: string, url: string }[];
   };
-  /* Added missing service_details and physical_details to fix Product type errors */
   service_details?: {
     scope: { items: string[] };
     process: { phases: string[] };
