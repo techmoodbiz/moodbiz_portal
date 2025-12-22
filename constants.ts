@@ -2,7 +2,7 @@
 import { 
   Zap, Handshake, Target, Shield, LayoutDashboard, PenTool, 
   Activity, FileText, BarChart2, Settings, Users, Building2, 
-  BookOpen
+  BookOpen, Package
 } from 'lucide-react';
 
 export const THEME = {
@@ -43,12 +43,13 @@ export const NAV_ITEMS = [
   { type: 'link', id: 'generations', icon: FileText, label: 'Generator History', role: ['admin', 'brand_owner'] },
   { type: 'link', id: 'audits', icon: FileText, label: 'Auditor History', role: ['admin', 'brand_owner'] },
   { id: 'analytics', label: 'Auditor Analytics', icon: BarChart2, type: 'item', role: ['admin', 'brand_owner'] },
-  { type: 'header', label: 'Cấu Hình', role: ['admin', 'brand_owner'] },
-  { type: 'link', id: 'settings', icon: Settings, label: 'Cấu hình hệ thống', role: ['admin'] },
-  { type: 'link', id: 'users', icon: Users, label: 'Quản lý tài khoản', role: ['admin', 'brand_owner'] },
+  { type: 'header', label: 'Hồ sơ Brand', role: ['admin', 'brand_owner', 'content_creator'] },
   { type: 'link', id: 'brands', icon: Building2, label: 'Quản lý thương hiệu', role: ['admin', 'brand_owner'] },
-  { type: 'header', label: 'Tài Nguyên' },
-  { type: 'link', id: 'guidelines', icon: BookOpen, label: 'Brand Guidelines' }
+  { type: 'link', id: 'products', icon: Package, label: 'Sản phẩm & Dịch vụ' },
+  { type: 'link', id: 'guidelines', icon: BookOpen, label: 'Brand Guidelines' },
+  { type: 'header', label: 'Hệ thống', role: ['admin'] },
+  { type: 'link', id: 'settings', icon: Settings, label: 'Cấu hình Prompt', role: ['admin'] },
+  { type: 'link', id: 'users', icon: Users, label: 'Quản lý tài khoản', role: ['admin', 'brand_owner'] }
 ];
 
 export const PLATFORM_CONFIGS: Record<string, string> = {
@@ -76,6 +77,8 @@ export const PLATFORM_CONFIGS: Record<string, string> = {
 
 export const DEFAULT_GEN_PROMPT = `Bạn là Trợ lý AI của {brand_name}.
 Nhiệm vụ: Viết bài đăng cho kênh {platform} về chủ đề: "{topic}".
+
+{product_context}
 
 QUAN TRỌNG: NGÔN NGỮ ĐẦU RA LÀ {language}.
 

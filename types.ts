@@ -1,5 +1,4 @@
 
-
 export interface User {
   uid: string;
   email: string | null;
@@ -15,7 +14,6 @@ export interface User {
 export interface Brand {
   id: string;
   name: string;
-  // 1. Định danh cốt lõi
   legal_name?: string;
   slug?: string;
   logo_url?: string;
@@ -26,8 +24,6 @@ export interface Brand {
   industry?: string;
   category?: string;
   country?: string;
-
-  // 2. Chiến lược & Định vị
   mission?: string;
   vision?: string;
   brand_promise?: string;
@@ -35,8 +31,6 @@ export interface Brand {
   core_values?: string[];
   usp?: string[];
   target_segments?: string[];
-
-  // 3. Quy chuẩn nội dung (cho AI)
   personality: string; 
   brand_personality?: string[]; 
   voice: string; 
@@ -45,7 +39,6 @@ export interface Brand {
   dont_words?: string[];
   style_rules?: string;
   visual_rules?: string;
-
   auditCriteria?: string;
   summary?: string;
   last_guideline_updated_at?: any;
@@ -59,6 +52,7 @@ export interface Generation {
   input_data: {
     platform: string;
     topic: string;
+    product_id?: string;
   };
   output_data: string;
   citations?: string[];
@@ -107,21 +101,6 @@ export interface Guideline {
   created_at?: any;
 }
 
-export interface AnalysisResult {
-  brandName?: string;
-  industry?: string;
-  targetAudience?: string;
-  tone?: string;
-  summary?: string;
-  coreValues?: string[];
-  keywords?: string[];
-  visualStyle?: string;
-  dos?: string[];
-  donts?: string[];
-  sourceUrl?: string;
-  analyzedAt?: string;
-}
-
 export interface SystemPrompts {
   generator: string;
   auditor: {
@@ -130,7 +109,110 @@ export interface SystemPrompts {
   };
 }
 
-// Added missing Persona interface definition to fix import errors in PersonasTab.tsx
+export interface Product {
+  id: string;
+  brand_id: string;
+  name: string;
+  type: 'good' | 'service';
+  category: string;
+  sub_category?: string;
+  line?: string;
+  version?: string; // Basic/Pro/Enterprise
+  status: 'Active' | 'Paused';
+  
+  // Giá trị & Khách hàng
+  target_audience: {
+    type: 'B2B' | 'B2C' | 'Both';
+    industry?: string;
+    scale?: string;
+    market?: string;
+  };
+  value_prop: {
+    pain_points: string[];
+    benefits: string[];
+    usp: string[];
+    use_cases: string[];
+  };
+
+  // Nội dung marketing chuẩn hóa
+  marketing: {
+    short_desc: string;
+    long_desc?: string;
+    key_messages: string[];
+    default_cta?: string;
+    tags?: string[];
+    funnel_stage?: 'TOFU' | 'MOFU' | 'BOFU' | 'All';
+    tone?: string;
+  };
+
+  // Bằng chứng & Asset
+  assets: {
+    testimonials?: { id: string, name: string, quote: string }[];
+    key_results?: string[];
+    media_links?: { title: string, url: string }[];
+  };
+
+  // Layer Dịch vụ
+  service_details?: {
+    scope: { items: { label: string, enabled: boolean, desc?: string }[] };
+    process: { phases: { name: string, duration?: string, desc?: string }[] };
+    kpis: {
+      traffic?: string;
+      leads?: string;
+      mql_sql?: string;
+      cpl_cpa?: string;
+      cr?: string;
+      revenue?: string;
+      commitment_min?: string;
+    };
+    input_reqs: string[]; // GA4, CRM, budget...
+  };
+
+  // Layer Sản phẩm vật lý
+  physical_details?: {
+    technical: {
+      ingredients?: string;
+      specs?: string;
+      dimensions?: string;
+      weight?: string;
+      expiry?: string;
+      standards?: string; // ISO, GMP...
+    };
+    usage: {
+      guide?: string;
+      storage?: string;
+      warnings?: string;
+      target_group?: string;
+      contraindications?: string;
+    };
+    commerce: {
+      price_list?: number;
+      price_promo?: number;
+      moq?: string;
+      unit?: string;
+      stock?: string;
+      channels?: string[]; // Online/Offline/Sàn
+    };
+  };
+}
+
+export interface AnalysisResult {
+  brandName?: string;
+  industry?: string;
+  targetAudience?: string;
+  tone?: string;
+  coreValues?: string[];
+  keywords?: string[];
+  visualStyle?: string;
+  dos?: string[];
+  donts?: string[];
+  summary?: string;
+  sourceUrl?: string;
+  analyzedAt?: string;
+  method?: string;
+  confidence?: string;
+}
+
 export interface Persona {
   id: string;
   brand_id: string;
@@ -142,19 +224,6 @@ export interface Persona {
   preferredLanguage: string;
 }
 
-// Added missing Product interface definition to fix import errors in ProductsTab.tsx
-export interface Product {
-  id: string;
-  brand_id: string;
-  name: string;
-  description: string;
-  features: string[];
-  benefits: string[];
-  usp: string;
-  pricing: string;
-}
-
-// Added missing ContentTemplate interface definition to fix import errors in TemplatesTab.tsx
 export interface ContentTemplate {
   id: string;
   brand_id: string;

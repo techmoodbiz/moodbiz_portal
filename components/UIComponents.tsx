@@ -61,50 +61,42 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, on
   );
 };
 
-// --- Brand Selector ---
+// --- Brand Selector (High Contrast Refined Style - Standardized Height) ---
 interface BrandSelectorProps {
   availableBrands: Brand[];
   selectedBrandId: string;
   onChange: (id: string) => void;
   disabled?: boolean;
   showAllOption?: boolean;
+  className?: string;
 }
 
-export const BrandSelector: React.FC<BrandSelectorProps> = ({ availableBrands, selectedBrandId, onChange, disabled, showAllOption = false }) => {
-  // Only show locked view if we are strictly selecting a single brand (not filtering with "All")
-  if (availableBrands.length === 1 && !showAllOption) {
-    const brand = availableBrands[0];
-    return (
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl text-[#102d62]">
-        <div className="flex items-center gap-2 font-bold text-sm">
-          <Building2 size={18} className="text-[#01ccff]" />
-          {brand.name}
-        </div>
-        <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-200 text-blue-800 rounded-full uppercase tracking-wide">Locked</span>
-      </div>
-    );
-  }
-
+export const BrandSelector: React.FC<BrandSelectorProps> = ({ availableBrands, selectedBrandId, onChange, disabled, showAllOption = false, className = "" }) => {
   return (
-    <div className="relative">
-      <div className="absolute left-4 top-3.5 text-[#102d62] pointer-events-none"><Building2 size={18} /></div>
-      <div className="absolute right-4 top-4 text-slate-400 pointer-events-none"><ChevronDown size={16} /></div>
+    <div className={`relative group ${className}`}>
+      <div className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-600 pointer-events-none z-10">
+        <Building2 size={20} strokeWidth={2.5} />
+      </div>
       <select
         value={selectedBrandId}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full pl-11 pr-10 py-3 bg-white border-2 border-slate-200 rounded-xl appearance-none font-bold text-[#102d62] focus:border-[#01ccff] outline-none transition-all cursor-pointer shadow-sm hover:border-blue-200 text-sm"
+        className="w-full pl-14 pr-12 py-4 bg-white border border-slate-300 rounded-2xl appearance-none font-bold text-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all cursor-pointer hover:border-slate-400 shadow-sm text-[14px] tracking-wide"
       >
-        {showAllOption && <option value="all">Tất cả Brands</option>}
+        {showAllOption && <option value="all">Tất cả thương hiệu</option>}
         {availableBrands.map(b => (
           <option key={b.id} value={b.id}>{b.name}</option>
         ))}
+        {availableBrands.length === 0 && <option value="">Không có thương hiệu</option>}
       </select>
+      <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none z-10">
+        <ChevronDown size={20} strokeWidth={2.5} />
+      </div>
     </div>
   );
 };
 
-// --- Stat Card (Upgraded) ---
+// --- Stat Card ---
 export const StatCard: React.FC<{ value: string | number; label: string; icon?: LucideIcon; delay?: number }> = ({ value, label, icon: Icon, delay = 0 }) => (
   <div 
     className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 fill-mode-backwards"
@@ -124,7 +116,7 @@ export const StatCard: React.FC<{ value: string | number; label: string; icon?: 
   </div>
 );
 
-// --- Feature Card (New) ---
+// --- Feature Card ---
 export const FeatureCard: React.FC<{ title: string; desc: string; icon: LucideIcon; delay?: number }> = ({ title, desc, icon: Icon, delay = 0 }) => (
   <div 
     className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all duration-300 group animate-in fade-in slide-in-from-bottom-8 fill-mode-backwards"
@@ -138,7 +130,7 @@ export const FeatureCard: React.FC<{ title: string; desc: string; icon: LucideIc
   </div>
 );
 
-// --- Quick Action Card (New) ---
+// --- Quick Action Card ---
 export const QuickActionCard: React.FC<{ title: string; desc: string; icon: LucideIcon; onClick: () => void; color?: string }> = ({ title, desc, icon: Icon, onClick, color = "blue" }) => (
   <button 
     onClick={onClick}

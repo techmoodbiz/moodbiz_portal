@@ -34,7 +34,8 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ availableBrands }) => {
         total += (data.total_audits || 0);
         if (data.issue_counts) {
           Object.entries(data.issue_counts).forEach(([key, val]) => {
-            counts[key] = (counts[key] || 0) + val;
+            // Fix: Cast val to any or number to satisfy arithmetic operation requirements if inference fails
+            counts[key] = (counts[key] || 0) + (val as number);
           });
         }
       });
@@ -75,7 +76,8 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ availableBrands }) => {
   // Process data for Chart
   useEffect(() => {
     const stats = Object.entries(analyticsData.issue_counts)
-      .map(([type, count]) => ({ type, count }))
+      // Fix: Explicitly cast count to number to ensure sort arithmetic works correctly
+      .map(([type, count]) => ({ type, count: count as number }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
     setErrorStats(stats);

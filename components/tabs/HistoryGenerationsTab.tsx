@@ -146,7 +146,7 @@ const HistoryGenerationsTab: React.FC<HistoryGenerationsTabProps> = ({
                 <button onClick={() => setIsGenDetailOpen(false)} className="p-2 hover:bg-slate-200 rounded-full text-slate-400"><X size={20}/></button>
             </div>
             <div className="flex flex-1 overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-6 grid md:grid-cols-2 gap-8">
+                <div className="flex-1 overflow-y-auto p-6 grid md:grid-cols-2 gap-8 custom-scrollbar">
                     <div className="space-y-6">
                       <div><h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Input Parameters</h4>
                           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
@@ -155,6 +155,17 @@ const HistoryGenerationsTab: React.FC<HistoryGenerationsTabProps> = ({
                             <div><span className="text-xs font-bold text-slate-500 block mb-1">Topic</span><p className="text-sm text-[#102d62] font-medium">{selectedGeneration.input_data.topic}</p></div>
                           </div>
                       </div>
+
+                      {selectedGeneration.citations && selectedGeneration.citations.length > 0 && (
+                        <div>
+                           <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-2"><BookOpen size={14}/> Sources Used</h4>
+                           <div className="flex flex-wrap gap-2">
+                              {selectedGeneration.citations.map((src, i) => (
+                                <span key={i} className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg border border-blue-100">{src}</span>
+                              ))}
+                           </div>
+                        </div>
+                      )}
 
                       <div className="bg-[#f0f9ff] rounded-xl border border-blue-100 p-4">
                         <h4 className="text-xs font-bold text-[#102d62] uppercase mb-3 flex items-center gap-2"><Activity size={14}/> Quick Audit</h4>
