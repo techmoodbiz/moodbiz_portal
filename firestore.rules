@@ -48,6 +48,12 @@ service cloud.firestore {
       allow read, create, update: if isSignedIn();
     }
 
+    // ===== AUDIT_RULES =====
+    match /audit_rules/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // ===== BRAND_ANALYTICS =====
     match /brand_analytics/{docId} {
       allow read: if isSignedIn();

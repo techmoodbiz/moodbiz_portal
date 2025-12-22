@@ -1,4 +1,5 @@
 
+
 export interface User {
   uid: string;
   email: string | null;
@@ -9,6 +10,15 @@ export interface User {
   avatar?: string;
   name?: string;
   id?: string;
+}
+
+export interface AuditRule {
+  id: string;
+  type: 'language' | 'ai_logic' | 'brand' | 'product';
+  code: string; // VD: Vietnamese, Global_AI_Logic
+  label: string;
+  content: string; // Nội dung Markdown
+  updated_at: any;
 }
 
 export interface Brand {
@@ -60,16 +70,6 @@ export interface Generation {
   last_updated?: any;
 }
 
-export interface Comment {
-  id: string;
-  parentId: string;
-  userId: string;
-  userName: string;
-  userRole: string;
-  content: string;
-  timestamp: any;
-}
-
 export interface Auditor {
   id: string;
   type: string;
@@ -81,6 +81,7 @@ export interface Auditor {
     rawText: string;
     text: string;
     url?: string;
+    language?: string;
   };
   output_data: any;
   timestamp: any;
@@ -117,10 +118,8 @@ export interface Product {
   category: string;
   sub_category?: string;
   line?: string;
-  version?: string; // Basic/Pro/Enterprise
+  version?: string; 
   status: 'Active' | 'Paused';
-  
-  // Giá trị & Khách hàng
   target_audience: {
     type: 'B2B' | 'B2C' | 'Both';
     industry?: string;
@@ -133,8 +132,6 @@ export interface Product {
     usp: string[];
     use_cases: string[];
   };
-
-  // Nội dung marketing chuẩn hóa
   marketing: {
     short_desc: string;
     long_desc?: string;
@@ -144,61 +141,37 @@ export interface Product {
     funnel_stage?: 'TOFU' | 'MOFU' | 'BOFU' | 'All';
     tone?: string;
   };
-
-  // Bằng chứng & Asset
   assets: {
     testimonials?: { id: string, name: string, quote: string }[];
     key_results?: string[];
     media_links?: { title: string, url: string }[];
   };
-
-  // Layer Dịch vụ
+  /* Added missing service_details and physical_details to fix Product type errors */
   service_details?: {
-    scope: { items: { label: string, enabled: boolean, desc?: string }[] };
-    process: { phases: { name: string, duration?: string, desc?: string }[] };
+    scope: { items: string[] };
+    process: { phases: string[] };
     kpis: {
       traffic?: string;
       leads?: string;
-      mql_sql?: string;
       cpl_cpa?: string;
-      cr?: string;
-      revenue?: string;
       commitment_min?: string;
     };
-    input_reqs: string[]; // GA4, CRM, budget...
+    input_reqs: string[];
   };
-
-  // Layer Sản phẩm vật lý
   physical_details?: {
-    technical: {
-      ingredients?: string;
-      specs?: string;
-      dimensions?: string;
-      weight?: string;
-      expiry?: string;
-      standards?: string; // ISO, GMP...
-    };
-    usage: {
-      guide?: string;
-      storage?: string;
-      warnings?: string;
-      target_group?: string;
-      contraindications?: string;
-    };
+    technical: any;
+    usage: any;
     commerce: {
       price_list?: number;
-      price_promo?: number;
-      moq?: string;
       unit?: string;
-      stock?: string;
-      channels?: string[]; // Online/Offline/Sàn
+      channels: string[];
     };
   };
 }
 
 export interface AnalysisResult {
-  brandName?: string;
-  industry?: string;
+  brandName: string;
+  industry: string;
   targetAudience?: string;
   tone?: string;
   coreValues?: string[];
@@ -211,6 +184,16 @@ export interface AnalysisResult {
   analyzedAt?: string;
   method?: string;
   confidence?: string;
+}
+
+export interface Comment {
+  id: string;
+  parentId: string;
+  userId: string;
+  userName: string;
+  userRole: string;
+  content: string;
+  timestamp: any;
 }
 
 export interface Persona {

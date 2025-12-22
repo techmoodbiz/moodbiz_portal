@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Check, X, Star, FileText, Info } from 'lucide-react';
 import { Guideline, Brand, User } from '../../types';
@@ -12,7 +13,8 @@ interface GuidelinesTabProps {
   brands: Brand[];
   currentUser: User;
   setToast: (toast: any) => void;
-  showConfirm: (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info') => void;
+  /* Fixed: made type optional to match App.tsx definition */
+  showConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
 }
 
 const GuidelinesTab: React.FC<GuidelinesTabProps> = ({ guidelines, availableBrands, brands, currentUser, setToast, showConfirm }) => {

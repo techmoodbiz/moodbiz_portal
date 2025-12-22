@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Building2, ChevronDown, BarChart2, LucideIcon, ArrowRight, AlertTriangle, X, Menu, PenTool, Activity, Send, MessageSquare } from 'lucide-react';
+import { Building2, ChevronDown, BarChart2, LucideIcon, ArrowRight, AlertTriangle, X, Menu, PenTool, Activity, Send, MessageSquare, Check } from 'lucide-react';
 import { Brand, Comment, User } from '../types';
 import { THEME } from '../constants';
 import { db } from '../firebase';
@@ -61,7 +61,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, on
   );
 };
 
-// --- Brand Selector (High Contrast Refined Style - Standardized Height) ---
+// --- Custom Brand Selector (Premium Styled Dropdown) ---
 interface BrandSelectorProps {
   availableBrands: Brand[];
   selectedBrandId: string;
@@ -71,27 +71,106 @@ interface BrandSelectorProps {
   className?: string;
 }
 
-export const BrandSelector: React.FC<BrandSelectorProps> = ({ availableBrands, selectedBrandId, onChange, disabled, showAllOption = false, className = "" }) => {
+export const BrandSelector: React.FC<BrandSelectorProps> = ({ 
+  availableBrands, 
+  selectedBrandId, 
+  onChange, 
+  disabled, 
+  showAllOption = false, 
+  className = "" 
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const selectedBrand = availableBrands.find(b => b.id === selectedBrandId);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (id: string) => {
+    onChange(id);
+    setIsOpen(false);
+  };
+
   return (
-    <div className={`relative group ${className}`}>
-      <div className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-600 pointer-events-none z-10">
-        <Building2 size={20} strokeWidth={2.5} />
-      </div>
-      <select
-        value={selectedBrandId}
-        onChange={(e) => onChange(e.target.value)}
+    <div className={`relative ${className}`} ref={dropdownRef}>
+      {/* Toggle Button */}
+      <button
+        type="button"
         disabled={disabled}
-        className="w-full pl-14 pr-12 py-4 bg-white border border-slate-300 rounded-2xl appearance-none font-bold text-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all cursor-pointer hover:border-slate-400 shadow-sm text-[14px] tracking-wide"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full flex items-center gap-4 pl-5 pr-5 py-4 bg-white border rounded-2xl transition-all text-left shadow-sm ${
+          isOpen ? 'border-blue-500 ring-4 ring-blue-500/5' : 'border-slate-300 hover:border-slate-400'
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
       >
-        {showAllOption && <option value="all">Tất cả thương hiệu</option>}
-        {availableBrands.map(b => (
-          <option key={b.id} value={b.id}>{b.name}</option>
-        ))}
-        {availableBrands.length === 0 && <option value="">Không có thương hiệu</option>}
-      </select>
-      <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none z-10">
-        <ChevronDown size={20} strokeWidth={2.5} />
-      </div>
+        <div className="text-blue-600 shrink-0">
+          <Building2 size={20} strokeWidth={2.5} />
+        </div>
+        
+        <div className="flex-1 overflow-hidden">
+          <span className="block font-black text-slate-900 text-[14px] truncate tracking-wide">
+            {selectedBrandId === 'all' ? 'Tất cả thương hiệu' : (selectedBrand?.name || 'Chọn thương hiệu')}
+          </span>
+        </div>
+
+        <div className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
+          <ChevronDown size={20} strokeWidth={2.5} />
+        </div>
+      </button>
+
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div className="absolute z-[100] mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top">
+          <div className="max-h-[300px] overflow-y-auto custom-scrollbar p-2 space-y-1">
+            {showAllOption && (
+              <button
+                type="button"
+                onClick={() => handleSelect('all')}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
+                  selectedBrandId === 'all' ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50 text-slate-600'
+                }`}
+              >
+                <span className="font-bold text-[13px]">Tất cả thương hiệu</span>
+                {selectedBrandId === 'all' && <Check size={16} strokeWidth={3} />}
+              </button>
+            )}
+
+            {availableBrands.map((brand) => (
+              <button
+                key={brand.id}
+                type="button"
+                onClick={() => handleSelect(brand.id)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all group ${
+                  selectedBrandId === brand.id ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50 text-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    selectedBrandId === brand.id ? 'bg-blue-100' : 'bg-slate-100 group-hover:bg-white'
+                  }`}>
+                    <Building2 size={16} strokeWidth={2.5} />
+                  </div>
+                  <span className="font-bold text-[13px] truncate">{brand.name}</span>
+                </div>
+                {selectedBrandId === brand.id && <Check size={16} strokeWidth={3} />}
+              </button>
+            ))}
+
+            {availableBrands.length === 0 && (
+              <div className="px-4 py-8 text-center text-slate-400 text-xs italic">
+                Không có dữ liệu thương hiệu
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

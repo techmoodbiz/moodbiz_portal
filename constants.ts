@@ -1,8 +1,10 @@
 
+
 import { 
   Zap, Handshake, Target, Shield, LayoutDashboard, PenTool, 
   Activity, FileText, BarChart2, Settings, Users, Building2, 
-  BookOpen, Package
+  BookOpen, Package, ShieldAlert, FileSearch, Target as TargetIcon,
+  Languages, BrainCircuit, Award, ShoppingBag, FileCode
 } from 'lucide-react';
 
 export const THEME = {
@@ -14,24 +16,67 @@ export const THEME = {
 };
 
 export const SUPPORTED_LANGUAGES = [
-  { code: 'Vietnamese', label: 'Tiếng Việt (Vietnamese)', flag: '🇻🇳' },
-  { code: 'English', label: 'Tiếng Anh (English)', flag: '🇺🇸' },
-  { code: 'Japanese', label: 'Tiếng Nhật (Japanese)', flag: '🇯🇵' }
+  { code: 'Vietnamese', label: 'Tiếng Việt', flag: '🇻🇳' },
+  { code: 'English', label: 'Tiếng Anh', flag: '🇺🇸' },
+  { code: 'Japanese', label: 'Tiếng Nhật', flag: '🇯🇵' }
 ];
 
-export const COMPANY_STATS = [
-  { value: "3+", label: "Năm Hình Thành & Phát Triển" },
-  { value: "18+", label: "Giải Pháp Digital Chuyên Biệt" },
-  { value: "100%", label: "Đội Ngũ In-house Chuyên Sâu" },
-  { value: "80+", label: "Dự Án B2B/Brand/SME" }
-];
+export const AUDIT_CATEGORIES = {
+  language: { label: "Ngôn ngữ", icon: Languages, color: "text-blue-500", bg: "bg-blue-50", description: "Ngữ pháp, hành văn (MD Rules)." },
+  ai_logic: { label: "AI & Logic", icon: BrainCircuit, color: "text-purple-500", bg: "bg-purple-50", description: "Bịa thông tin, sai brief (MD Rules)." },
+  brand: { label: "Thương hiệu", icon: Award, color: "text-[#102d62]", bg: "bg-slate-100", description: "Brand Voice & Tone (Dynamic)." },
+  product: { label: "Sản phẩm", icon: ShoppingBag, color: "text-emerald-500", bg: "bg-emerald-50", description: "Thông số & USP (Database)." }
+};
 
-export const CORE_VALUES = [
-  { icon: Zap, title: "Đổi Mới", desc: "Không ngừng sáng tạo giải pháp mới." },
-  { icon: Handshake, title: "Đồng Hành", desc: "Cam kết dài hạn cùng đối tác." },
-  { icon: Target, title: "Quyết Liệt", desc: "Tập trung vào kết quả cuối cùng." },
-  { icon: Shield, title: "Trách Nhiệm", desc: "Minh bạch trong mọi hoạt động." }
-];
+/* Added missing GLOBAL_AUDIT_STANDARDS used in HistoryGenerationsTab */
+export const GLOBAL_AUDIT_STANDARDS = `
+1. Accuracy: Ensure all information is factual and consistent with brand guidelines.
+2. Tone: Maintain the specified brand voice and personality.
+3. Grammar: Use correct grammar, spelling, and punctuation.
+4. Compliance: Adhere to safety and legal requirements.
+5. Clarity: Ensure content is clear, concise, and easy to understand.
+`;
+
+export const SOCIAL_AUDIT_PROMPT = `Bạn là Chuyên gia Content Auditor.
+
+NHIỆM VỤ:
+Kiểm duyệt văn bản dựa trên các quy chuẩn Markdown (SOP) được cung cấp dưới đây.
+
+YÊU CẦU CỰC KỲ QUAN TRỌNG:
+- "problematic_text" phải là TRÍCH NGUYÊN VĂN từ bản gốc.
+- Phải đối soát cực kỳ nghiêm ngặt với các file SOP đính kèm.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📖 SOP RULES (DYNAMIC FROM DATABASE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{dynamic_rules}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[HỒ SƠ THƯƠNG HIỆU]
+Brand: {brand_name}
+Personality: {brand_personality}
+Voice: {brand_voice}
+Guideline: {guideline}
+
+VĂN BẢN CẦN QUÉT:
+"{text}"
+
+YÊU CẦU ĐẦU RA (JSON ONLY):
+{
+  "summary": "Tóm tắt rủi ro",
+  "identified_issues": [
+    {
+      "category": "language / ai_logic / brand / product",
+      "problematic_text": "TRÍCH NGUYÊN VĂN",
+      "reason": "Tại sao lỗi (dựa trên SOP nào)",
+      "severity": "High / Medium / Low",
+      "suggestion": "Cách sửa"
+    }
+  ],
+  "rewritten_text": "Bản thảo đã sạch lỗi"
+}`;
+
+export const WEBSITE_AUDIT_PROMPT = SOCIAL_AUDIT_PROMPT;
 
 export const NAV_ITEMS = [
   { type: 'header', label: 'Tổng Quan' },
@@ -45,79 +90,37 @@ export const NAV_ITEMS = [
   { id: 'analytics', label: 'Auditor Analytics', icon: BarChart2, type: 'item', role: ['admin', 'brand_owner'] },
   { type: 'header', label: 'Hồ sơ Brand', role: ['admin', 'brand_owner', 'content_creator'] },
   { type: 'link', id: 'brands', icon: Building2, label: 'Quản lý thương hiệu', role: ['admin', 'brand_owner'] },
-  { type: 'link', id: 'products', icon: Package, label: 'Sản phẩm & Dịch vụ' },
+  { type: 'link', id: 'products', icon: Package, label: 'Sản phẩm & Dịch vụ', role: ['admin', 'brand_owner'] },
   { type: 'link', id: 'guidelines', icon: BookOpen, label: 'Brand Guidelines' },
   { type: 'header', label: 'Hệ thống', role: ['admin'] },
-  { type: 'link', id: 'settings', icon: Settings, label: 'Cấu hình Prompt', role: ['admin'] },
+  { type: 'link', id: 'settings', icon: Settings, label: 'Cấu hình Prompt & Rules', role: ['admin'] },
   { type: 'link', id: 'users', icon: Users, label: 'Quản lý tài khoản', role: ['admin', 'brand_owner'] }
 ];
 
 export const PLATFORM_CONFIGS: Record<string, string> = {
-  'Website / SEO Blog': `
-    - ĐỘ DÀI: 800 - 2000 từ (Bắt buộc).
-    - CẤU TRÚC: 
-      + Tiêu đề H1: Hấp dẫn, chứa từ khóa chính.
-      + Sapo: 100-150 từ, nêu vấn đề và giải pháp.
-      + Thân bài: Chia thành các thẻ H2, H3 rõ ràng.
-      + Kết bài: Tóm tắt và CTA.
-  `,
-  'Facebook Post': `
-    - ĐỘ DÀI: Ngắn gọn (dưới 300 từ) hoặc Long-form.
-    - CẤU TRÚC: Hook thu hút, thân đoạn thoáng, Emoji phù hợp, CTA rõ ràng.
-  `,
-  'LinkedIn Article': `
-    - ĐỘ DÀI: 500 - 1000 từ.
-    - PHONG CÁCH: Chuyên gia, Insight ngành, trang trọng.
-  `,
-  'Email Marketing': `
-    - ĐỘ DÀI: Dưới 400 từ.
-    - CẤU TRÚC: Subject line gây tò mò, mở bài cá nhân hóa, tập trung Benefit, CTA đơn giản.
-  `
+  'Website / SEO Blog': `- CẤU TRÚC: H1, H2, H3, CTA.`,
+  'Facebook Post': `- Hook, Short segments, CTA.`,
+  'LinkedIn Article': `- PHONG CÁCH: B2B Expert.`,
+  'Email Marketing': `- MỤC TIÊU: Click-through.`
 };
 
-export const DEFAULT_GEN_PROMPT = `Bạn là Trợ lý AI của {brand_name}.
-Nhiệm vụ: Viết bài đăng cho kênh {platform} về chủ đề: "{topic}".
-
-{product_context}
-
-QUAN TRỌNG: NGÔN NGỮ ĐẦU RA LÀ {language}.
-
-THÔNG TIN THƯƠNG HIỆU:
-[TÍNH CÁCH THƯƠNG HIỆU]
-{brand_personality}
-
-[GIỌNG VĂN & PHONG CÁCH]
-{brand_voice}
-
-[CẦN TRÁNH - CÁC LỖI THƯỜNG GẶP]
-{common_mistakes}
-
-[YÊU CẦU QUAN TRỌNG: RAG & TRÍCH DẪN]
-{rag_context}`;
-
-export const GLOBAL_AUDIT_STANDARDS = `
-1. GRAMMAR & SPELLING
-2. STRUCTURE & CLARITY
-3. CTA FORMAT
-4. PLATFORM APPROPRIATENESS
-5. TONE CONSISTENCY
-6. RELEVANCE & ACCURACY
+export const DEFAULT_GEN_PROMPT = `Bạn là chuyên gia content của {brand_name}.
+{rag_context}
+Platform: {platform}
+Language: {language}
+Product Info: {product_context}
 `;
 
-export const SOCIAL_AUDIT_PROMPT = `Bạn là Chuyên gia Kiểm duyệt Thương hiệu {brand_name}.
-PHÂN TÍCH JSON: {
-  "overall_score": number,
-  "summary": string,
-  "identified_issues": [ { "issue_type": string, "problematic_text": string, "reason": string, "severity": string, "suggestion": string } ],
-  "rewritten_text": string
-}`;
+export const COMPANY_STATS = [
+  { label: 'Brands', value: '150+' },
+  { label: 'Generations', value: '12.5k' },
+  { label: 'Audits', value: '8.2k' },
+  { label: 'Users', value: '450' },
+];
 
-export const WEBSITE_AUDIT_PROMPT = `Bạn là Chuyên gia SEO Audit cho {brand_name}.
-PHÂN TÍCH JSON.`;
-
-export const GEN_TEMPLATES = [
-  { title: "Website SEO Article", desc: "Bài Blog chuẩn SEO chuyên sâu.", platform: "Website / SEO Blog" },
-  { title: "Facebook Viral Post", desc: "Bài viết ngắn, hài hước, bắt trend.", platform: "Facebook Post" },
-  { title: "LinkedIn Thought Leadership", desc: "Chia sẻ kiến thức chuyên sâu.", platform: "LinkedIn Article" },
-  { title: "Cold Email B2B", desc: "Giới thiệu giải pháp ngắn gọn.", platform: "Email Marketing" }
+export const CORE_VALUES = [
+  { title: 'Chất lượng', desc: 'Đảm bảo nội dung luôn đạt chuẩn cao nhất.', icon: Shield },
+  { title: 'Sáng tạo', desc: 'Ứng dụng AI để bứt phá giới hạn sáng tạo.', icon: Zap },
+  { title: 'Chính xác', desc: 'Mọi thông tin đều được kiểm chứng kỹ lưỡng.', icon: Target },
+  { title: 'Đồng hành', desc: 'Luôn lắng nghe và thấu hiểu khách hàng.', icon: Handshake },
 ];
