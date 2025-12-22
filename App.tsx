@@ -27,7 +27,8 @@ import firebase from './firebase';
 const App = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [activeTab, setActiveTab] = useState('generator');
+  // Thay đổi ở đây: mặc định là dashboard (Company Profile)
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [confirmModal, setConfirmModal] = useState({
@@ -154,7 +155,6 @@ const App = () => {
     });
   };
 
-  // Added missing handleDeleteBrand function to fix reference error in renderTabContent
   const handleDeleteBrand = (id: string) => {
     showConfirm("Xóa thương hiệu", "Bạn có chắc chắn muốn xóa thương hiệu này? Toàn bộ dữ liệu liên quan sẽ bị ảnh hưởng.", async () => {
       try {
@@ -207,15 +207,12 @@ const App = () => {
     <div className="min-h-screen bg-[#f1f5f9] flex font-sans overflow-x-hidden">
       <MenuToggle isOpen={isSidebarOpen} toggle={() => setIsSidebarOpen(!isSidebarOpen)} />
 
-      {/* Sidebar with wider width and optimized padding */}
       <aside className={`fixed inset-y-0 left-0 z-40 w-[320px] bg-[#102d62] text-white transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl flex flex-col overflow-hidden`}>
-        {/* Logo Section */}
         <div className="p-10 flex items-center gap-4">
           <div className="w-12 h-12 bg-[#01ccff] rounded-2xl flex items-center justify-center font-black text-[#102d62] shadow-[0_0_20px_rgba(1,204,255,0.4)] text-xl shrink-0">M</div>
           <span className="text-2xl font-black tracking-tight whitespace-nowrap uppercase">MOODBIZ <span className="text-[#01ccff]">AI</span></span>
         </div>
 
-        {/* Navigation Items */}
         <nav className="flex-1 overflow-y-auto px-6 py-4 space-y-1.5 custom-scrollbar">
           {NAV_ITEMS.map((item, idx) => {
             if (item.type === 'header') {
@@ -251,7 +248,6 @@ const App = () => {
           })}
         </nav>
 
-        {/* Logout Section */}
         <div className="p-6">
           <button 
             onClick={() => auth.signOut()} 
