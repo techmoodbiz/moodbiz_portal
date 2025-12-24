@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { LogOut, X, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { LogOut, X, CheckCircle, AlertTriangle, Loader2, ShieldAlert } from 'lucide-react';
 import { auth, db } from './firebase';
 import LoginScreen from './components/LoginScreen';
 import BrandModal from './components/BrandModal';
 import UserModal from './components/UserModal';
 import { ConfirmationModal, MenuToggle } from './components/UIComponents';
 import { User, Brand, Generation, Auditor, Guideline, SystemPrompts, AuditRule } from './types';
-import { NAV_ITEMS, DEFAULT_GEN_PROMPT, SOCIAL_AUDIT_PROMPT, WEBSITE_AUDIT_PROMPT } from './constants';
+import { NAV_ITEMS, GEN_PROMPTS_DEFAULTS, AUDIT_PROMPTS_DEFAULTS } from './constants';
 import { createUserApi } from './services/api';
 
 // TABS
@@ -44,13 +44,31 @@ const App = () => {
 
   const [systemPrompts, setSystemPrompts] = useState<SystemPrompts>(() => {
     const saved = localStorage.getItem('moodbiz_prompts');
-    if (saved) return JSON.parse(saved);
-    return { generator: DEFAULT_GEN_PROMPT, auditor: { social: SOCIAL_AUDIT_PROMPT, website: WEBSITE_AUDIT_PROMPT } };
+    let initial = { generator: GEN_PROMPTS_DEFAULTS, auditor: AUDIT_PROMPTS_DEFAULTS };
+    
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Merge saved config with defaults to ensure all platforms exist (handling schema migrations)
+        initial = {
+          generator: { ...GEN_PROMPTS_DEFAULTS, ...(parsed.generator || {}) },
+          auditor: { ...AUDIT_PROMPTS_DEFAULTS, ...(parsed.auditor || {}) }
+        };
+      } catch (e) {
+        console.error("Error parsing saved prompts, resetting to defaults", e);
+      }
+    }
+    return initial;
   });
 
   useEffect(() => {
     localStorage.setItem('moodbiz_active_tab', activeTab);
   }, [activeTab]);
+
+  useEffect(() => {
+    // Save prompts whenever they change to ensure persistence
+    localStorage.setItem('moodbiz_prompts', JSON.stringify(systemPrompts));
+  }, [systemPrompts]);
 
   // DATA
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -97,7 +115,6 @@ const App = () => {
   useEffect(() => {
     if (!currentUser) return;
     
-    // Subscribe to Audit Rules
     const unsubRules = db.collection("audit_rules").onSnapshot(snap => {
       setAuditRules(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditRule)));
     });
@@ -126,11 +143,9 @@ const App = () => {
     });
   }, [currentUser]);
 
-  // Updated Auditor and User fetch logic to support Content Creator's Insight Hub
   useEffect(() => {
     if (!currentUser || currentUser.role === 'viewer') return;
     
-    // Users management still restricted to admin/owner
     let unsubUsers = () => {};
     if (currentUser.role === 'admin' || currentUser.role === 'brand_owner') {
       unsubUsers = db.collection("users").onSnapshot(snap => {
@@ -138,7 +153,6 @@ const App = () => {
       });
     }
     
-    // Auditor data for Insight Hub: Admin sees all, Others see assigned/owned brands
     const unsubAuditors = db.collection("auditors").orderBy("timestamp", "desc").onSnapshot(snap => {
       const allAudits = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Auditor));
       
@@ -194,13 +208,54 @@ const App = () => {
     }
   };
 
+  const handleDeleteUser = async (id: string) => {
+    showConfirm("Xóa người dùng", "Xác nhận xóa tài khoản này khỏi hệ thống?", async () => {
+      try {
+        await db.collection("users").doc(id).delete();
+        setToast({ type: 'success', message: 'Đã xóa người dùng' });
+      } catch (err: any) {
+        setToast({ type: 'error', message: 'Lỗi khi xóa: ' + err.message });
+      }
+    });
+  };
+
+  const handleDeleteBrand = async (id: string) => {
+    showConfirm("Xóa thương hiệu", "Xác nhận xóa thương hiệu này và toàn bộ dữ liệu liên quan?", async () => {
+      try {
+        await db.collection("brands").doc(id).delete();
+        setToast({ type: 'success', message: 'Đã xóa thương hiệu' });
+      } catch (err: any) {
+        setToast({ type: 'error', message: 'Lỗi khi xóa: ' + err.message });
+      }
+    });
+  };
+
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
-    setActiveTab('dashboard'); // Force transition to dashboard upon login
+    setActiveTab('dashboard'); 
+  };
+
+  const hasAccess = (tabId: string) => {
+    if (!currentUser) return false;
+    const item = NAV_ITEMS.find((n: any) => n.id === tabId) as any;
+    if (!item) return true;
+    return item.roles?.includes(currentUser.role);
   };
 
   const renderTabContent = () => {
     if (!currentUser) return null;
+
+    if (!hasAccess(activeTab)) {
+      return (
+        <div className="flex flex-col items-center justify-center h-[60vh] animate-in fade-in">
+          <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mb-6 shadow-sm">
+            <ShieldAlert size={40} />
+          </div>
+          <h2 className="text-2xl font-black text-[#102d62] uppercase mb-2">Truy cập bị hạn chế</h2>
+          <p className="text-slate-500 font-medium text-center max-w-md">Bạn không có quyền truy cập vào tính năng này. Vui lòng liên hệ Admin nếu bạn cho rằng đây là một sự nhầm lẫn.</p>
+        </div>
+      );
+    }
 
     switch (activeTab) {
       case 'dashboard': return <DashboardTab currentUser={currentUser} showLoading={!brandsLoaded} availableBrands={availableBrands} setActiveTab={setActiveTab} generations={generations} auditors={auditors} />;
@@ -209,22 +264,19 @@ const App = () => {
       case 'generations': return <HistoryGenerationsTab generations={generations} brands={brands} availableBrands={availableBrands} setToast={setToast} currentUser={currentUser} systemPrompts={systemPrompts} auditors={auditors} guidelines={guidelines} />;
       case 'audits': return <HistoryAuditsTab auditors={auditors} brands={brands} availableBrands={availableBrands} />;
       case 'analytics': return <AnalyticsTab availableBrands={availableBrands} />;
-      case 'users': return <UsersTab users={users} brands={brands} currentUser={currentUser} setEditingUser={setEditingUser} setIsUserModalOpen={setIsUserModalOpen} handleDeleteUser={(id) => showConfirm("Xóa", "Xóa user này?", () => db.collection("users").doc(id).delete())} />;
-      case 'brands': return <BrandsTab availableBrands={availableBrands} currentUser={currentUser} setEditingBrand={setEditingBrand} setIsBrandModalOpen={setIsBrandModalOpen} handleDeleteBrand={(id) => showConfirm("Xóa", "Xóa brand này?", () => db.collection("brands").doc(id).delete())} />;
-      case 'products': return <ProductsTab availableBrands={availableBrands} selectedBrandId={selectedBrandId} />;
+      case 'users': return <UsersTab users={users} brands={brands} currentUser={currentUser} setEditingUser={setEditingUser} setIsUserModalOpen={setIsUserModalOpen} handleDeleteUser={handleDeleteUser} />;
+      case 'brands': return <BrandsTab availableBrands={availableBrands} currentUser={currentUser} setEditingBrand={setEditingBrand} setIsBrandModalOpen={setIsBrandModalOpen} handleDeleteBrand={handleDeleteBrand} />;
       case 'guidelines': return <GuidelinesTab guidelines={guidelines} availableBrands={availableBrands} brands={brands} currentUser={currentUser} setToast={setToast} showConfirm={showConfirm} />;
       case 'settings': return <SettingsTab systemPrompts={systemPrompts} setSystemPrompts={setSystemPrompts} showConfirm={showConfirm} setToast={setToast} auditRules={auditRules} />;
+      case 'products': return <ProductsTab availableBrands={availableBrands} selectedBrandId={selectedBrandId} />;
       default: return <DashboardTab currentUser={currentUser} showLoading={!brandsLoaded} availableBrands={availableBrands} setActiveTab={setActiveTab} generations={generations} auditors={auditors} />;
     }
   };
 
   if (!authReady) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[#f1f5f9]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="animate-spin text-[#102d62]" size={48} />
-          <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Đang khởi tạo Moodbiz...</p>
-        </div>
+      <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="animate-spin text-[#102d62]" size={48} />
       </div>
     );
   }
@@ -234,49 +286,95 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] flex font-sans overflow-x-hidden">
-      <MenuToggle isOpen={isSidebarOpen} toggle={() => setIsSidebarOpen(!isSidebarOpen)} />
-      <aside className={`fixed inset-y-0 left-0 z-40 w-[320px] bg-[#102d62] text-white transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl flex flex-col overflow-hidden`}>
-        <div className="p-10 flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#01ccff] rounded-2xl flex items-center justify-center font-black text-[#102d62] shadow-[0_0_20px_rgba(1,204,255,0.4)] text-xl shrink-0">M</div>
-          <span className="text-2xl font-black tracking-tight whitespace-nowrap uppercase">MOODBIZ <span className="text-[#01ccff]">AI</span></span>
+    <div className="h-screen bg-[#f8f9fa] flex overflow-hidden">
+      {/* Sidebar Navigation */}
+      <aside className={`fixed inset-y-0 left-0 z-30 w-72 bg-[#102d62] text-white transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:relative md:flex md:flex-col shrink-0 border-r border-white/5`}>
+        <div className="p-8 border-b border-white/10 shrink-0">
+          <h1 className="text-2xl font-black tracking-tighter uppercase">MOODBIZ <span className="text-[#01ccff]">AI</span></h1>
         </div>
-        <nav className="flex-1 overflow-y-auto px-6 py-4 space-y-1.5 custom-scrollbar">
-          {NAV_ITEMS.map((item, idx) => {
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
+          {NAV_ITEMS.map((item: any, idx) => {
             if (item.type === 'header') {
-              if (item.role && !item.role.includes(currentUser.role)) return null;
-              return <div key={idx} className="px-4 pt-8 pb-3 text-[10px] font-black text-slate-400/60 uppercase tracking-[0.2em]">{item.label}</div>;
+              if (item.roles && !item.roles.includes(currentUser.role)) return null;
+              return <div key={idx} className="px-4 pt-6 pb-2 text-[10px] font-black uppercase text-white/30 tracking-[0.2em]">{item.label}</div>;
             }
-            if (item.role && !item.role.includes(currentUser.role)) return null;
+            if (item.roles && !item.roles.includes(currentUser.role)) return null;
             const Icon = item.icon!;
-            const isActive = activeTab === item.id;
             return (
-              <button key={item.id} onClick={() => { setActiveTab(item.id!); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-[14px] font-bold transition-all duration-300 group ${isActive ? 'bg-[#01ccff] text-[#102d62] shadow-[0_8px_30px_rgba(1,204,255,0.3)]' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}>
-                <Icon size={20} strokeWidth={isActive ? 3 : 2} className={`${isActive ? 'text-[#102d62]' : 'text-slate-400 group-hover:text-[#01ccff]'} shrink-0`} />
-                <span className="whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left">{item.label}</span>
+              <button
+                key={item.id}
+                onClick={() => { setActiveTab(item.id!); setIsSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-[#01ccff] text-[#102d62] font-black shadow-lg shadow-cyan-400/20' : 'text-white/60 hover:bg-white/5 hover:text-white'}`}
+              >
+                <Icon size={20} />
+                <span className="text-sm font-bold">{item.label}</span>
               </button>
             );
           })}
-        </nav>
-        <div className="p-6">
-          <button onClick={() => auth.signOut()} className="w-full flex items-center gap-4 px-6 py-4 bg-white/5 hover:bg-white/10 text-[#f87171] rounded-2xl transition-all duration-300 font-bold text-sm group">
-            <LogOut size={20} strokeWidth={2.5} className="shrink-0" /> 
-            <span>Đăng xuất</span>
-          </button>
-        </div>
-      </aside>
-      <main className="flex-1 md:ml-[320px] p-4 md:p-8 lg:p-12 relative min-h-screen">
-        <div className="max-w-[1600px] mx-auto h-full">{renderTabContent()}</div>
-        {toast && (
-          <div className={`fixed bottom-8 right-8 z-[100] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-right-10 ${toast.type === 'success' ? 'bg-emerald-500 text-white' : toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-[#102d62] text-white'}`}>
-            {toast.type === 'success' ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
-            <span className="font-bold text-sm">{toast.message}</span>
+          <div className="pt-8 mt-auto">
+            <button
+              onClick={() => auth.signOut()}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-400/10 transition-all"
+            >
+              <LogOut size={20} />
+              <span className="text-sm font-bold">Đăng xuất</span>
+            </button>
           </div>
-        )}
+        </nav>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+        {/* Mobile Header */}
+        <header className="bg-white/80 backdrop-blur-md border-b border-slate-100 px-8 py-4 flex items-center justify-between md:hidden shrink-0 z-20">
+          <MenuToggle isOpen={isSidebarOpen} toggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+          <h1 className="text-lg font-black text-[#102d62]">MOODBIZ AI</h1>
+          <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[12px] font-black text-[#102d62] uppercase">
+            {currentUser.name?.charAt(0) || currentUser.email?.charAt(0)}
+          </div>
+        </header>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#f8f9fa]">
+          <div className="p-8 md:p-12 max-w-[1600px] mx-auto w-full">
+            {renderTabContent()}
+          </div>
+        </div>
       </main>
-      <ConfirmationModal isOpen={confirmModal.isOpen} title={confirmModal.title} message={confirmModal.message} onConfirm={confirmModal.onConfirm} onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })} type={confirmModal.type} />
-      <UserModal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} onSave={handleSaveUser} user={editingUser} brands={brands} currentUserRole={currentUser.role} />
-      <BrandModal isOpen={isBrandModalOpen} onClose={() => setIsBrandModalOpen(false)} brand={editingBrand} currentUser={currentUser} setToast={setToast} onSave={(b) => setEditingBrand(null)} />
+
+      {/* Shared Modals */}
+      <BrandModal 
+        isOpen={isBrandModalOpen} 
+        onClose={() => setIsBrandModalOpen(false)} 
+        brand={editingBrand} 
+        currentUser={currentUser} 
+        setToast={setToast} 
+      />
+      <UserModal 
+        isOpen={isUserModalOpen} 
+        onClose={() => setIsUserModalOpen(false)} 
+        user={editingUser} 
+        brands={brands} 
+        currentUserRole={currentUser.role} 
+        onSave={handleSaveUser} 
+      />
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        type={confirmModal.type}
+      />
+
+      {/* Global Notifications (Toast) */}
+      {toast && (
+        <div className={`fixed bottom-8 right-8 z-[100] px-6 py-4 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 flex items-center gap-3 border ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : toast.type === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
+          {toast.type === 'success' ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
+          <span className="text-sm font-bold">{toast.message}</span>
+          <button onClick={() => setToast(null)} className="ml-2 text-current opacity-50 hover:opacity-100"><X size={16} /></button>
+        </div>
+      )}
     </div>
   );
 };

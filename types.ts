@@ -1,3 +1,6 @@
+// ==================
+// User & Domain Types
+// ==================
 
 export interface User {
   uid: string;
@@ -14,16 +17,15 @@ export interface User {
 export interface AuditRule {
   id: string;
   type: 'language' | 'ai_logic' | 'brand' | 'product';
-  code: string; 
+  code: string;
   label: string;
-  content: string; 
+  content: string;
   updated_at: any;
 }
 
 export interface Brand {
   id: string;
   name: string;
-  legal_name?: string;
   slug?: string;
   logo_url?: string;
   primary_color?: string;
@@ -33,16 +35,13 @@ export interface Brand {
   industry?: string;
   category?: string;
   country?: string;
-  mission?: string;
-  vision?: string;
-  brand_promise?: string;
   positioning_statement?: string;
   core_values?: string[];
   usp?: string[];
   target_segments?: string[];
-  personality: string; 
-  brand_personality?: string[]; 
-  voice: string; 
+  personality: string;
+  brand_personality?: string[];
+  voice: string;
   tone_of_voice?: string;
   do_words?: string[];
   dont_words?: string[];
@@ -61,7 +60,7 @@ export interface Generation {
   input_data: {
     platform: string;
     topic: string;
-    language: string; // Added missing language info
+    language: string;
     product_id?: string;
   };
   output_data: string;
@@ -81,7 +80,7 @@ export interface Auditor {
     rawText: string;
     text: string;
     url?: string;
-    language?: string;
+    language?: string;   // bạn có thể đổi sang LanguageCode nếu muốn chuẩn hóa luôn
     platform?: string;
   };
   output_data: any;
@@ -104,11 +103,8 @@ export interface Guideline {
 }
 
 export interface SystemPrompts {
-  generator: string;
-  auditor: {
-    social: string;
-    website: string;
-  };
+  generator: Record<string, string>;
+  auditor: Record<string, string>;
 }
 
 export interface Product {
@@ -117,85 +113,28 @@ export interface Product {
   name: string;
   type: 'good' | 'service';
   category: string;
-  sub_category?: string;
-  line?: string;
-  version?: string; 
   status: 'Active' | 'Paused';
-  target_audience: {
-    type: 'B2B' | 'B2C' | 'Both';
-    industry?: string;
-    scale?: string;
-    market?: string;
-  };
-  value_prop: {
-    pain_points: string[];
-    benefits: string[];
-    usp: string[];
-    use_cases: string[];
-  };
-  marketing: {
-    short_desc: string;
-    long_desc?: string;
-    key_messages: string[];
-    default_cta?: string;
-    tags?: string[];
-    funnel_stage?: 'TOFU' | 'MOFU' | 'BOFU' | 'All';
-    tone?: string;
-  };
-  assets: {
-    testimonials?: { id: string, name: string, quote: string }[];
-    key_results?: string[];
-    media_links?: { title: string, url: string }[];
-  };
-  service_details?: {
-    scope: { items: string[] };
-    process: { phases: string[] };
-    kpis: {
-      traffic?: string;
-      leads?: string;
-      cpl_cpa?: string;
-      commitment_min?: string;
-    };
-    input_reqs: string[];
-  };
-  physical_details?: {
-    technical: any;
-    usage: any;
-    commerce: {
-      price_list?: number;
-      unit?: string;
-      channels: string[];
-    };
-  };
+  target_audience: string;
+  benefits: string;
+  usp: string;
+  description: string;
 }
 
+// Added AnalysisResult to fix import errors in services/api.ts and BrandModal.tsx
 export interface AnalysisResult {
   brandName: string;
   industry: string;
-  targetAudience?: string;
-  tone?: string;
-  coreValues?: string[];
-  keywords?: string[];
-  visualStyle?: string;
-  dos?: string[];
-  donts?: string[];
-  summary?: string;
-  sourceUrl?: string;
-  analyzedAt?: string;
-  method?: string;
-  confidence?: string;
+  targetAudience: string;
+  tone: string;
+  coreValues: string[];
+  keywords: string[];
+  visualStyle: string;
+  dos: string[];
+  donts: string[];
+  summary: string;
 }
 
-export interface Comment {
-  id: string;
-  parentId: string;
-  userId: string;
-  userName: string;
-  userRole: string;
-  content: string;
-  timestamp: any;
-}
-
+// Added Persona to fix import error in PersonasTab.tsx
 export interface Persona {
   id: string;
   brand_id: string;
@@ -214,4 +153,34 @@ export interface ContentTemplate {
   structure: 'AIDA' | 'PAS' | 'Storytelling' | 'H-P-I-S-C';
   description: string;
   prompt_skeleton: string;
+}
+
+// ==================
+// NLP Module Interfaces
+// ==================
+
+export type LanguageCode = 'vi' | 'en' | 'ja';
+
+export type IssueDimension = 'language' | 'ai_logic' | 'brand' | 'product';
+export type IssueSeverity = 'low' | 'medium' | 'high';
+
+export interface NlpIssue {
+  dimension: IssueDimension;
+  severity: IssueSeverity;
+  message: string;
+  problematic_text?: string;
+  sentence_idx?: number; // để mapping highlight / JSON Gemini
+}
+
+export interface NlpStats {
+  word_count: number;
+  sentence_count: number;
+  paragraph_count: number;
+}
+
+export interface NlpResponse {
+  language: LanguageCode;
+  stats: NlpStats;
+  potential_issues: NlpIssue[];
+  processed_text: string;
 }

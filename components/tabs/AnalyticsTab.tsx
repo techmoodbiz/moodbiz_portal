@@ -28,7 +28,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ availableBrands }) => {
   const stats = useMemo(() => {
     const filtered = audits.filter(a => selectedAnalyticsBrand === 'all' || a.brand_id === selectedAnalyticsBrand);
     const totals = { language: 0, ai_logic: 0, brand: 0, product: 0 };
-    
+
     filtered.forEach(a => {
       const issues = a.output_data?.identified_issues || [];
       issues.forEach((issue: any) => {
@@ -62,7 +62,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ availableBrands }) => {
         <p className="text-xs text-slate-500 font-medium leading-relaxed mb-6">{config.description}</p>
         <div className="mt-auto">
           <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-             <div className={`h-full transition-all duration-1000 ${config.bg.replace('bg-', 'bg-').replace('-50', '-500')}`} style={{ width: `${percentage}%`, backgroundColor: 'currentColor' }}></div>
+            <div className={`h-full transition-all duration-1000 ${config.bg.replace('bg-', 'bg-').replace('-50', '-500')}`} style={{ width: `${percentage}%`, backgroundColor: 'currentColor' }}></div>
           </div>
         </div>
       </div>
@@ -71,8 +71,8 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ availableBrands }) => {
 
   return (
     <div className="animate-in fade-in space-y-10 pb-20">
-      <SectionHeader title="Audit Analytics" subtitle="Phân tích chất lượng nội dung dựa trên 4 khối tiêu chuẩn MOODBIZ.">
-         <BrandSelector availableBrands={availableBrands} selectedBrandId={selectedAnalyticsBrand} onChange={setSelectedAnalyticsBrand} showAllOption={true} className="min-w-[280px]" />
+      <SectionHeader title="Auditor Analytics" subtitle="Phân tích chất lượng nội dung dựa trên 4 khối tiêu chuẩn MOODBIZ.">
+        <BrandSelector availableBrands={availableBrands} selectedBrandId={selectedAnalyticsBrand} onChange={setSelectedAnalyticsBrand} showAllOption={true} className="min-w-[280px]" />
       </SectionHeader>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -83,25 +83,25 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ availableBrands }) => {
       </div>
 
       <div className="bg-[#102d62] rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl">
-         <div className="absolute top-0 right-0 w-96 h-96 bg-[#01ccff] rounded-full blur-[120px] opacity-10 -mr-20 -mt-20"></div>
-         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="max-w-xl">
-               <h3 className="text-2xl font-black uppercase tracking-tight mb-4">Tổng quan rủi ro hệ thống</h3>
-               <p className="text-blue-100/70 font-medium leading-relaxed">
-                 Dữ liệu này được sử dụng để tối ưu hóa AI Generator. Các lỗi thường gặp trong quá khứ sẽ trở thành "Negative Knowledge" giúp AI tự động né tránh trong các lượt khởi tạo sau.
-               </p>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#01ccff] rounded-full blur-[120px] opacity-10 -mr-20 -mt-20"></div>
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="max-w-xl">
+            <h3 className="text-2xl font-black uppercase tracking-tight mb-4">Tổng quan rủi ro hệ thống</h3>
+            <p className="text-blue-100/70 font-medium leading-relaxed">
+              Dữ liệu này được sử dụng để tối ưu hóa AI Generator. Các lỗi thường gặp trong quá khứ sẽ trở thành "Negative Knowledge" giúp AI tự động né tránh trong các lượt khởi tạo sau.
+            </p>
+          </div>
+          <div className="flex gap-10">
+            <div className="text-center">
+              <div className="text-5xl font-black text-[#01ccff] mb-2">{stats.count}</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-blue-300">Tổng lượt Audit</div>
             </div>
-            <div className="flex gap-10">
-               <div className="text-center">
-                  <div className="text-5xl font-black text-[#01ccff] mb-2">{stats.count}</div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-blue-300">Tổng lượt Audit</div>
-               </div>
-               <div className="text-center">
-                  <div className="text-5xl font-black text-white mb-2">{stats.totals.language + stats.totals.ai_logic + stats.totals.brand + stats.totals.product}</div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-blue-300">Tổng lỗi phát hiện</div>
-               </div>
+            <div className="text-center">
+              <div className="text-5xl font-black text-white mb-2">{stats.totals.language + stats.totals.ai_logic + stats.totals.brand + stats.totals.product}</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-blue-300">Tổng lỗi phát hiện</div>
             </div>
-         </div>
+          </div>
+        </div>
       </div>
     </div>
   );

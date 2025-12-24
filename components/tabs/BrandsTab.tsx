@@ -48,11 +48,7 @@ const BrandsTab: React.FC<BrandsTabProps> = ({ availableBrands, currentUser, set
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-                        <div className="space-y-1">
-                           <span className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1"><Target size={10}/> Mission</span>
-                           <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">{b.mission || 'Nhiệm vụ cốt lõi chưa được cập nhật'}</p>
-                        </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
                         <div className="space-y-1">
                            <span className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1"><Zap size={10}/> USP</span>
                            <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">{b.usp?.join(', ') || 'Lợi thế độc bản chưa cập nhật'}</p>

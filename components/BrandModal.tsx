@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-// Added Loader2 to imports from lucide-react
 import { FileText, Globe, X, Upload, Tag, Target, Palette, MessageSquare, ShieldCheck, Heart, Zap, AlertTriangle, Book, Eye, Sparkles, RefreshCw, Loader2 } from 'lucide-react';
 import { db } from '../firebase';
 import firebase from '../firebase';
@@ -44,13 +43,10 @@ const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, onSave, brand,
           name: "",
           personality: "",
           voice: "",
-          legal_name: "",
           slug: "",
           slogan: "",
           tagline: "",
           industry: "",
-          mission: "",
-          vision: "",
           positioning_statement: "",
           primary_color: "#102d62",
           secondary_colors: [],
@@ -207,27 +203,16 @@ const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, onSave, brand,
                   <input className={inputClass} value={formData.name || ''} onChange={(e) => updateField('name', e.target.value)} placeholder="VD: MOODBIZ" />
                 </div>
                 <div>
-                  <label className={labelClass}>Tên pháp lý</label>
-                  <input className={inputClass} value={formData.legal_name || ''} onChange={(e) => updateField('legal_name', e.target.value)} placeholder="Công ty TNHH..." />
-                </div>
-                <div>
                   <label className={labelClass}>Lĩnh vực (Industry)</label>
                   <input className={inputClass} value={formData.industry || ''} onChange={(e) => updateField('industry', e.target.value)} placeholder="VD: Marketing, F&B..." />
                 </div>
-                <div>
-                  <label className={labelClass}>Slug / ID</label>
-                  <input className={`${inputClass} font-mono`} value={formData.id || ''} onChange={(e) => updateField('id', e.target.value)} disabled={!!brand} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className={labelClass}>Slogan</label>
                   <input className={inputClass} value={formData.slogan || ''} onChange={(e) => updateField('slogan', e.target.value)} placeholder="Vươn cao cùng đối tác..." />
                 </div>
                 <div>
-                  <label className={labelClass}>Tagline</label>
-                  <input className={inputClass} value={formData.tagline || ''} onChange={(e) => updateField('tagline', e.target.value)} placeholder="Tagline ngắn gọn..." />
+                  <label className={labelClass}>Slug / ID</label>
+                  <input className={`${inputClass} font-mono`} value={formData.id || ''} onChange={(e) => updateField('id', e.target.value)} disabled={!!brand} />
                 </div>
               </div>
 
@@ -249,17 +234,6 @@ const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, onSave, brand,
 
           {activeTab === 'strategy' && (
             <div className="space-y-6 animate-in">
-              <div className="grid gap-6">
-                <div>
-                  <label className={labelClass}><Heart size={14} className="inline mr-1" /> Sứ mệnh (Mission)</label>
-                  <textarea className={`${inputClass} h-24 custom-scrollbar`} value={formData.mission || ''} onChange={(e) => updateField('mission', e.target.value)} placeholder="Chúng tôi sinh ra để..." />
-                </div>
-                <div>
-                  <label className={labelClass}><Eye size={14} className="inline mr-1" /> Tầm nhìn (Vision)</label>
-                  <textarea className={`${inputClass} h-24 custom-scrollbar`} value={formData.vision || ''} onChange={(e) => updateField('vision', e.target.value)} placeholder="Trở thành đơn vị dẫn đầu..." />
-                </div>
-              </div>
-
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label className={labelClass}><Zap size={14} className="inline mr-1" /> USP (Lợi thế độc bản)</label>

@@ -45,7 +45,7 @@ export async function generateContent(payload: any) {
 }
 
 /**
- * Kiểm tra giọng văn (Audit) thông qua Backend
+ * Kiểm tra giọng văn (Audit) thông qua Backend 4-Layer Engine
  */
 export async function auditContent(payload: any) {
   const res = await fetch(`${BASE_URL}/audit`, {
@@ -53,8 +53,12 @@ export async function auditContent(payload: any) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       brand: payload.brand,
-      contentType: payload.contentType || 'social',
-      prompt: payload.prompt
+      text: payload.text,
+      platform: payload.platform,
+      language: payload.language,
+      product: payload.product,
+      rules: payload.rules,
+      platformRules: payload.platformRules
     }),
   });
 

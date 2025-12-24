@@ -17,8 +17,8 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, brands, currentUser, setEdit
   return (
     <div className="animate-in fade-in max-w-6xl mx-auto pb-20">
       <div className="flex justify-between items-center mb-8">
-          <SectionHeader title="Quản lý tài khoản" subtitle="Thêm và quản lý tài khoản người dùng trong hệ thống" />
-          <button onClick={() => { setEditingUser(null); setIsUserModalOpen(true); }} className="px-6 py-3 bg-[#102d62] text-white rounded-xl font-bold hover:bg-blue-900 shadow-lg flex items-center gap-2"><PlusCircle size={20}/> Thêm Tài Khoản</button>
+        <SectionHeader title="User Management" subtitle="Quản lý tài khoản người dùng trong hệ thống" />
+        <button onClick={() => { setEditingUser(null); setIsUserModalOpen(true); }} className="px-6 py-3 bg-[#102d62] text-white rounded-xl font-bold hover:bg-blue-900 shadow-lg flex items-center gap-2"><PlusCircle size={20} /> Thêm Tài Khoản</button>
       </div>
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <table className="w-full text-sm">
@@ -37,13 +37,13 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, brands, currentUser, setEdit
                 <tr key={u.id} className="hover:bg-slate-50">
                   <td className="px-6 py-4 font-bold text-[#102d62]">{u.name || u.displayName || u.email}</td>
                   <td className="px-6 py-4 text-slate-600">{u.email}</td>
-                  <td className="px-6 py-4"><span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${u.role==='admin'?'bg-purple-100 text-purple-700':u.role==='brand_owner'?'bg-blue-100 text-blue-700':'bg-emerald-100 text-emerald-700'}`}>{u.role.replace('_',' ')}</span></td>
+                  <td className="px-6 py-4"><span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : u.role === 'brand_owner' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>{u.role.replace('_', ' ')}</span></td>
                   <td className="px-6 py-4 text-slate-600 max-w-xs truncate">{brandsList}</td>
                   <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => { setEditingUser(u); setIsUserModalOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit3 size={18}/></button>
-                        <button onClick={() => handleDeleteUser(u.id!)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={18}/></button>
-                      </div>
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => { setEditingUser(u); setIsUserModalOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit3 size={18} /></button>
+                      <button onClick={() => handleDeleteUser(u.id!)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={18} /></button>
+                    </div>
                   </td>
                 </tr>
               );

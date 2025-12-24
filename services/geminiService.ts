@@ -99,7 +99,7 @@ export async function analyzeBrandDirect(content: string) {
   
   const prompt = `
 Phân tích nội dung sau và trích xuất TOÀN BỘ thông tin thương hiệu chi tiết dưới định dạng JSON.
-Cố gắng tìm kiếm Mission, Vision, USP, và các quy tắc viết (Do/Don't words).
+Cố gắng tìm kiếm USP, và các quy tắc viết (Do/Don't words).
 
 Nội dung:
 ${content}
@@ -114,12 +114,9 @@ ${content}
         type: Type.OBJECT,
         properties: {
           name: { type: Type.STRING },
-          legal_name: { type: Type.STRING },
           industry: { type: Type.STRING },
           slogan: { type: Type.STRING },
           tagline: { type: Type.STRING },
-          mission: { type: Type.STRING },
-          vision: { type: Type.STRING },
           usp: { type: Type.ARRAY, items: { type: Type.STRING } },
           core_values: { type: Type.ARRAY, items: { type: Type.STRING } },
           brand_personality: { type: Type.ARRAY, items: { type: Type.STRING } },
