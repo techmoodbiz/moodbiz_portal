@@ -3,7 +3,7 @@ import {
   Zap, Handshake, Target, Shield, LayoutDashboard, PenTool,
   Activity, FileText, BarChart2, Settings, Users, Building2,
   BookOpen, Package, ShieldAlert, FileSearch, Target as TargetIcon,
-  Languages, BrainCircuit, Award, ShoppingBag, FileCode
+  Languages, BrainCircuit, Award, ShoppingBag, FileCode, UserCircle
 } from 'lucide-react';
 
 export const THEME = {
@@ -60,6 +60,7 @@ export const NAV_ITEMS = [
   { type: 'header', label: 'Organization', roles: ['admin', 'brand_owner', 'content_creator'] },
   { id: 'analytics', label: 'Auditor Analytics', icon: BarChart2, roles: ['admin', 'brand_owner', 'content_creator'] },
   { id: 'products', label: 'Products & Services', icon: Package, roles: ['admin', 'brand_owner'] },
+  { id: 'personas', label: 'Audience Personas', icon: UserCircle, roles: ['admin', 'brand_owner', 'content_creator'] },
   { id: 'guidelines', label: 'Brand Guidelines', icon: FileSearch, roles: ['admin', 'brand_owner', 'content_creator'] },
   
   { type: 'header', label: 'Administration', roles: ['admin', 'brand_owner'] },
@@ -188,6 +189,10 @@ Thương hiệu: {brand_name} | Giọng văn: {brand_voice} | Personality: {bran
 [VĂN BẢN CẦN AUDIT]
 "{text}"
 
+[HƯỚNG DẪN VIẾT "REASON"]
+Sử dụng cấu trúc "The Because Framework" (Nguyên nhân - Hệ quả).
+Ví dụ: "Lỗi [A] do vi phạm [B] khiến [C]. Nên sửa thành [D]."
+
 [YÊU CẦU ĐẦU RA JSON]
 {
   "summary": "Tóm tắt rủi ro và đánh giá tổng quan.",
@@ -196,7 +201,7 @@ Thương hiệu: {brand_name} | Giọng văn: {brand_voice} | Personality: {bran
     {
       "category": "language | ai_logic | brand | product",
       "problematic_text": "TRÍCH DẪN NGUYÊN VĂN",
-      "reason": "Giải thích lỗi dựa trên context Facebook và Brand",
+      "reason": "Giải thích chi tiết theo cấu trúc Because Framework",
       "severity": "High | Medium | Low",
       "suggestion": "Cách sửa tối ưu cho Facebook"
     }
@@ -225,6 +230,9 @@ Thương hiệu: {brand_name} | Giọng văn: {brand_voice} | Personality: {bran
 [VĂN BẢN CẦN AUDIT]
 "{text}"
 
+[HƯỚNG DẪN VIẾT "REASON"]
+Sử dụng cấu trúc "The Because Framework" (Nguyên nhân - Hệ quả).
+
 [YÊU CẦU ĐẦU RA JSON]
 {
   "summary": "Tóm tắt rủi ro.",
@@ -233,7 +241,7 @@ Thương hiệu: {brand_name} | Giọng văn: {brand_voice} | Personality: {bran
     {
       "category": "language | ai_logic | brand | product",
       "problematic_text": "TRÍCH DẪN NGUYÊN VĂN",
-      "reason": "Giải thích lỗi (VD: Tone chưa đủ chuyên nghiệp, thiếu insight...)",
+      "reason": "Giải thích chi tiết theo cấu trúc Because Framework",
       "severity": "High | Medium | Low",
       "suggestion": "Cách sửa tối ưu cho LinkedIn"
     }
@@ -262,6 +270,9 @@ Thương hiệu: {brand_name} | Giọng văn: {brand_voice} | Personality: {bran
 [VĂN BẢN CẦN AUDIT]
 "{text}"
 
+[HƯỚNG DẪN VIẾT "REASON"]
+Sử dụng cấu trúc "The Because Framework" (Nguyên nhân - Hệ quả).
+
 [YÊU CẦU ĐẦU RA JSON]
 {
   "summary": "Tóm tắt rủi ro SEO và Content.",
@@ -270,7 +281,7 @@ Thương hiệu: {brand_name} | Giọng văn: {brand_voice} | Personality: {bran
     {
       "category": "language | ai_logic | brand | product",
       "problematic_text": "TRÍCH DẪN NGUYÊN VĂN",
-      "reason": "Giải thích lỗi",
+      "reason": "Giải thích chi tiết theo cấu trúc Because Framework",
       "severity": "High | Medium | Low",
       "suggestion": "Cách sửa tối ưu cho Website"
     }
@@ -299,6 +310,9 @@ Thương hiệu: {brand_name} | Giọng văn: {brand_voice} | Personality: {bran
 [VĂN BẢN CẦN AUDIT]
 "{text}"
 
+[HƯỚNG DẪN VIẾT "REASON"]
+Sử dụng cấu trúc "The Because Framework" (Nguyên nhân - Hệ quả).
+
 [YÊU CẦU ĐẦU RA JSON]
 {
   "summary": "Tóm tắt rủi ro Email.",
@@ -307,7 +321,7 @@ Thương hiệu: {brand_name} | Giọng văn: {brand_voice} | Personality: {bran
     {
       "category": "language | ai_logic | brand | product",
       "problematic_text": "TRÍCH DẪN NGUYÊN VĂN",
-      "reason": "Giải thích lỗi",
+      "reason": "Giải thích chi tiết theo cấu trúc Because Framework",
       "severity": "High | Medium | Low",
       "suggestion": "Cách sửa tối ưu cho Email"
     }

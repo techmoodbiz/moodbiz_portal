@@ -3,10 +3,11 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   RefreshCw, Sparkles, Copy, PenTool, Package,
   ChevronDown, Globe, Layout, Building2, Zap, BookOpen,
-  Languages, Mail, Facebook, Linkedin, LayoutDashboard, ShoppingBag
+  Languages, Mail, Facebook, Linkedin, LayoutDashboard, ShoppingBag,
+  UserCircle, Users, Award
 } from 'lucide-react';
-import { Brand, SystemPrompts, User, Auditor, Guideline, Product } from '../../types';
-import { SectionHeader, BrandSelector, CustomSelect } from '../UIComponents';
+import { Brand, SystemPrompts, User, Auditor, Guideline, Product, Persona } from '../../types';
+import { SectionHeader, BrandSelector, CustomSelect, MultiSelect } from '../UIComponents';
 import { SUPPORTED_LANGUAGES, PLATFORM_CONFIGS } from '../../constants';
 import { generateContent } from '../../services/api';
 import firebase, { db } from '../../firebase';
@@ -37,15 +38,30 @@ const GeneratorTab: React.FC<GeneratorTabProps> = ({
   const [genLanguage, setGenLanguage] = useState('Vietnamese');
   const [genResult, setGenResult] = useState('');
   const [citations, setCitations] = useState<string[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState('');
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [selectedPersonaId, setSelectedPersonaId] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [personas, setPersonas] = useState<Persona[]>([]);
 
   useEffect(() => {
     if (!selectedBrandId) return;
-    return db.collection('products').where('brand_id', '==', selectedBrandId).onSnapshot(snap => {
+    
+    // Fetch Products
+    const unsubProducts = db.collection('products').where('brand_id', '==', selectedBrandId).onSnapshot(snap => {
       setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+      setSelectedProductIds([]); // Reset on brand change
     });
+
+    // Fetch Personas
+    const unsubPersonas = db.collection('personas').where('brand_id', '==', selectedBrandId).onSnapshot(snap => {
+      setPersonas(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Persona)));
+    });
+
+    return () => {
+      unsubProducts();
+      unsubPersonas();
+    }
   }, [selectedBrandId]);
 
   const platformOptions = useMemo(() => {
@@ -68,12 +84,20 @@ const GeneratorTab: React.FC<GeneratorTabProps> = ({
   }, []);
 
   const productOptions = useMemo(() => {
-    const opts = [{ value: '', label: 'Nội dung chung về Brand', icon: Building2 }];
+    const opts = [{ value: '', label: 'Chung (Toàn thương hiệu)', icon: Award }];
     products.forEach(p => {
       opts.push({ value: p.id, label: p.name, icon: ShoppingBag });
     });
     return opts;
   }, [products]);
+
+  const personaOptions = useMemo(() => {
+    const opts = [{ value: '', label: 'Khách hàng mục tiêu chung', icon: Users }];
+    personas.forEach(p => {
+      opts.push({ value: p.id, label: p.name, icon: UserCircle });
+    });
+    return opts;
+  }, [personas]);
 
   // --- LOGIC CẢI TIẾN: LEARNING FROM MISTAKES ---
   const learningInsights = useMemo(() => {
@@ -122,11 +146,22 @@ const GeneratorTab: React.FC<GeneratorTabProps> = ({
     setIsGenerating(true);
     setGenResult('');
 
-    const selectedProduct = products.find(p => p.id === selectedProductId);
-    let productContext = '[SẢN PHẨM] Không xác định.';
-    if (selectedProduct) {
-      productContext = `[SẢN PHẨM: ${selectedProduct.name}]\n- Tệp khách hàng: ${selectedProduct.target_audience}\n- Công dụng: ${selectedProduct.benefits}\n- USP: ${selectedProduct.usp}`;
+    const selectedProducts = products.filter(p => selectedProductIds.includes(p.id));
+    const selectedPersona = personas.find(p => p.id === selectedPersonaId);
+    
+    let contextData = '';
+    
+    if (selectedProducts.length > 0) {
+      selectedProducts.forEach((p, index) => {
+        contextData += `[SẢN PHẨM/DỊCH VỤ ${index + 1}: ${p.name}]\n- Tệp khách hàng mục tiêu: ${p.target_audience}\n- Công dụng/Lợi ích: ${p.benefits}\n- USP (Lợi thế bán hàng): ${p.usp}\n\n`;
+      });
     }
+
+    if (selectedPersona) {
+      contextData += `[KHÁCH HÀNG MỤC TIÊU CỤ THỂ (PERSONA): ${selectedPersona.name}]\n- Công việc/Vị trí: ${selectedPersona.jobTitle} (${selectedPersona.industry})\n- Mục tiêu/Khao khát: ${selectedPersona.goals}\n- Nỗi đau/Rào cản (Pain Points): ${selectedPersona.painPoints}\n- Ngôn ngữ ưa thích: ${selectedPersona.preferredLanguage}\n`;
+    }
+
+    if (!contextData) contextData = '[SẢN PHẨM & PERSONA] Sử dụng thông tin chung từ Brand Profile.';
 
     // --- PROMPT ENGINEERING: NEGATIVE CONSTRAINTS ---
     const pastMistakes = `
@@ -157,7 +192,7 @@ ${learningInsights.product.length > 0 ? learningInsights.product.map(r => `- ${r
       .replace(/{common_mistakes}/g, pastMistakes)
       .replace(/{language}/g, genLanguage)
       .replace(/{platform}/g, genPlatform)
-      .replace(/{product_context}/g, productContext);
+      .replace(/{product_context}/g, contextData);
 
     const approvedGuidelines = guidelines.filter(g => g.brand_id === selectedBrandId && g.status === 'approved');
     const context = approvedGuidelines.map(g => `[Data Source: ${g.file_name}]: ${g.guideline_text || ''}`).join('\n\n');
@@ -173,7 +208,14 @@ ${learningInsights.product.length > 0 ? learningInsights.product.map(r => `- ${r
         brand_id: brand.id,
         user_id: currentUser.uid,
         user_name: currentUser.name || currentUser.displayName,
-        input_data: { platform: genPlatform, topic: genTopic, language: genLanguage, product_id: selectedProductId },
+        input_data: { 
+          platform: genPlatform, 
+          topic: genTopic, 
+          language: genLanguage, 
+          product_ids: selectedProductIds,
+          product_id: selectedProductIds[0] || '', // Backward compatibility
+          persona_id: selectedPersonaId
+        },
         output_data: data.result,
         citations: data.citations || [],
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -193,17 +235,28 @@ ${learningInsights.product.length > 0 ? learningInsights.product.map(r => `- ${r
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white p-7 rounded-[2.5rem] shadow-premium border border-slate-100 flex flex-col gap-5">
             <div>
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block ml-1">THƯƠNG HIỆU</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">THƯƠNG HIỆU</label>
               <BrandSelector availableBrands={availableBrands} selectedBrandId={selectedBrandId} onChange={setSelectedBrandId} />
             </div>
 
             <div>
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block ml-1">SẢN PHẨM / DỊCH VỤ</label>
-              <CustomSelect
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">SẢN PHẨM / DỊCH VỤ (TÙY CHỌN)</label>
+              <MultiSelect
                 options={productOptions}
-                value={selectedProductId}
-                onChange={setSelectedProductId}
-                placeholder="Nội dung chung về Brand"
+                value={selectedProductIds}
+                onChange={setSelectedProductIds}
+                placeholder="Chọn sản phẩm để tập trung"
+                icon={ShoppingBag}
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">ĐỐI TƯỢNG MỤC TIÊU (PERSONA)</label>
+              <CustomSelect
+                options={personaOptions}
+                value={selectedPersonaId}
+                onChange={setSelectedPersonaId}
+                placeholder="Khách hàng mục tiêu chung"
               />
             </div>
 
@@ -233,17 +286,17 @@ ${learningInsights.product.length > 0 ? learningInsights.product.map(r => `- ${r
             </div>
 
             <div>
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block ml-1">NHẬP CHỦ ĐỀ</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">NHẬP CHỦ ĐỀ</label>
               <textarea className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-[13px] min-h-[140px] font-medium text-[#102d62] outline-none focus:bg-white focus:ring-4 focus:ring-[#01ccff]/5 transition-all shadow-inner-soft custom-scrollbar" placeholder="Nhập chủ đề hoặc yêu cầu chi tiết..." value={genTopic} onChange={e => setGenTopic(e.target.value)} />
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2.5 block ml-1">NGÔN NGỮ</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">NGÔN NGỮ</label>
                 <CustomSelect options={languageOptions} value={genLanguage} onChange={setGenLanguage} icon={Globe} />
               </div>
               <div>
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2.5 block ml-1">KÊNH ĐĂNG TẢI</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">KÊNH ĐĂNG TẢI</label>
                 <CustomSelect options={platformOptions} value={genPlatform} onChange={setGenPlatform} />
               </div>
             </div>

@@ -32,6 +32,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ systemPrompts, setSystemPromp
       const id = editingRule.id || `RULE_${Date.now()}`;
       await db.collection('audit_rules').doc(id).set({
         ...editingRule,
+        apply_to_language: editingRule.apply_to_language || 'all',
         id,
         updated_at: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
@@ -88,7 +89,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ systemPrompts, setSystemPromp
                   <p className="text-xs text-slate-400 font-medium">Đối soát rủi ro dựa trên bộ luật MD.</p>
                 </div>
               </div>
-              <button onClick={() => { setEditingRule({ type: 'ai_logic', code: 'Global', label: '', content: '' }); setIsRuleModalOpen(true); }} className="px-5 py-2 bg-purple-600 text-white rounded-xl text-xs font-black flex items-center gap-2 hover:bg-purple-700 transition-all">
+              <button onClick={() => { setEditingRule({ type: 'ai_logic', code: 'Global', label: '', content: '', apply_to_language: 'all' }); setIsRuleModalOpen(true); }} className="px-5 py-2 bg-purple-600 text-white rounded-xl text-xs font-black flex items-center gap-2 hover:bg-purple-700 transition-all">
                 <Plus size={16}/> Thêm Quy Tắc
               </button>
             </div>
@@ -97,9 +98,16 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ systemPrompts, setSystemPromp
               {auditRules.map(rule => (
                 <div key={rule.id} className="p-6 bg-slate-50 rounded-2xl border border-slate-200 hover:border-purple-300 transition-all group">
                    <div className="flex justify-between items-start mb-4">
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${rule.type === 'language' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                        {rule.type} • {rule.code}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase w-fit ${rule.type === 'language' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                          {rule.type} • {rule.code}
+                        </span>
+                        {rule.type === 'language' && (
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">
+                            Lang: {rule.apply_to_language === 'all' || !rule.apply_to_language ? 'Tất cả' : rule.apply_to_language === 'vi' ? 'Tiếng Việt' : rule.apply_to_language === 'en' ? 'English' : 'Japanese'}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                          <button onClick={() => { setEditingRule(rule); setIsRuleModalOpen(true); }} className="p-1.5 text-blue-600 hover:bg-white rounded-lg shadow-sm"><Edit3 size={14}/></button>
                          <button onClick={() => handleDeleteRule(rule.id)} className="p-1.5 text-red-500 hover:bg-white rounded-lg shadow-sm"><Trash2 size={14}/></button>
@@ -193,6 +201,24 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ systemPrompts, setSystemPromp
                         <option value="product">Product Alignment</option>
                       </select>
                    </div>
+                   
+                   {/* Language Selector Conditional Render */}
+                   {editingRule.type === 'language' && (
+                     <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Áp dụng ngôn ngữ</label>
+                        <select 
+                          className={inputClass} 
+                          value={editingRule.apply_to_language || 'all'} 
+                          onChange={e => setEditingRule({...editingRule, apply_to_language: e.target.value as any})}
+                        >
+                          <option value="all">Tất cả ngôn ngữ</option>
+                          <option value="vi">Tiếng Việt (Vietnamese)</option>
+                          <option value="en">Tiếng Anh (English)</option>
+                          <option value="ja">Tiếng Nhật (Japanese)</option>
+                        </select>
+                     </div>
+                   )}
+
                    <div>
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Code</label>
                       <input className={inputClass} value={editingRule.code} onChange={e => setEditingRule({...editingRule, code: e.target.value})} placeholder="VD: Vietnamese..." />

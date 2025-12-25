@@ -8,7 +8,7 @@ import UserModal from './components/UserModal';
 import { ConfirmationModal, MenuToggle } from './components/UIComponents';
 import { User, Brand, Generation, Auditor, Guideline, SystemPrompts, AuditRule } from './types';
 import { NAV_ITEMS, GEN_PROMPTS_DEFAULTS, AUDIT_PROMPTS_DEFAULTS } from './constants';
-import { createUserApi } from './services/api';
+import { createUserApi, deleteUserApi } from './services/api';
 
 // TABS
 import DashboardTab from './components/tabs/DashboardTab';
@@ -22,6 +22,7 @@ import BrandsTab from './components/tabs/BrandsTab';
 import GuidelinesTab from './components/tabs/GuidelinesTab';
 import SettingsTab from './components/tabs/SettingsTab';
 import ProductsTab from './components/tabs/ProductsTab';
+import PersonasTab from './components/tabs/PersonasTab';
 import firebase from './firebase';
 
 const App = () => {
@@ -98,18 +99,57 @@ const App = () => {
   };
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (fbUser) => {
+    let unsubscribeUserDoc: () => void;
+
+    const unsubscribeAuth = auth.onAuthStateChanged(async (fbUser) => {
+      // Clean up previous user listener if any
+      if (unsubscribeUserDoc) {
+        unsubscribeUserDoc();
+      }
+
       if (fbUser) {
-        let userData: User = { uid: fbUser.uid, email: fbUser.email, displayName: fbUser.displayName || fbUser.email, role: 'viewer' };
-        try {
-          const snap = await db.collection('users').doc(fbUser.uid).get();
-          if (snap.exists) userData = { ...userData, ...snap.data() as any };
-        } catch (err) { console.error(err); }
-        setCurrentUser(userData);
-      } else { setCurrentUser(null); }
-      setAuthReady(true);
+        // Optimistic / Initial user state
+        const initialUser: User = { 
+          uid: fbUser.uid, 
+          email: fbUser.email, 
+          displayName: fbUser.displayName || fbUser.email, 
+          role: 'viewer' 
+        };
+
+        // Subscribe to real-time updates for the current user's profile
+        unsubscribeUserDoc = db.collection('users').doc(fbUser.uid).onSnapshot(
+          (doc) => {
+            if (doc.exists) {
+              const data = doc.data();
+              // Merge Firestore data with Auth data
+              setCurrentUser({ 
+                ...initialUser, 
+                ...data 
+              } as User);
+            } else {
+              // Doc doesn't exist yet, stick with auth data
+              setCurrentUser(initialUser);
+            }
+            setAuthReady(true);
+          },
+          (err) => {
+             console.error("User doc listen error", err);
+             // Fallback to auth data if Firestore fails
+             setCurrentUser(initialUser);
+             setAuthReady(true);
+          }
+        );
+
+      } else { 
+        setCurrentUser(null); 
+        setAuthReady(true);
+      }
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeUserDoc) unsubscribeUserDoc();
+    };
   }, []);
 
   useEffect(() => {
@@ -209,10 +249,13 @@ const App = () => {
   };
 
   const handleDeleteUser = async (id: string) => {
-    showConfirm("Xóa người dùng", "Xác nhận xóa tài khoản này khỏi hệ thống?", async () => {
+    showConfirm("Xóa người dùng", "Hành động này sẽ xóa vĩnh viễn tài khoản khỏi hệ thống.", async () => {
       try {
-        await db.collection("users").doc(id).delete();
-        setToast({ type: 'success', message: 'Đã xóa người dùng' });
+        const token = await auth.currentUser?.getIdToken();
+        if (!token) throw new Error("Authentication required");
+        
+        await deleteUserApi(id, token);
+        setToast({ type: 'success', message: 'Đã xóa người dùng và tài khoản đăng nhập' });
       } catch (err: any) {
         setToast({ type: 'error', message: 'Lỗi khi xóa: ' + err.message });
       }
@@ -231,7 +274,6 @@ const App = () => {
   };
 
   const handleLoginSuccess = (user: User) => {
-    setCurrentUser(user);
     setActiveTab('dashboard'); 
   };
 
@@ -263,12 +305,15 @@ const App = () => {
       case 'auditor': return <AuditorTab availableBrands={availableBrands} selectedBrandId={selectedBrandId} setSelectedBrandId={setSelectedBrandId} systemPrompts={systemPrompts} currentUser={currentUser} setToast={setToast} guidelines={guidelines} auditors={auditors} auditRules={auditRules} />;
       case 'generations': return <HistoryGenerationsTab generations={generations} brands={brands} availableBrands={availableBrands} setToast={setToast} currentUser={currentUser} systemPrompts={systemPrompts} auditors={auditors} guidelines={guidelines} />;
       case 'audits': return <HistoryAuditsTab auditors={auditors} brands={brands} availableBrands={availableBrands} />;
-      case 'analytics': return <AnalyticsTab availableBrands={availableBrands} />;
-      case 'users': return <UsersTab users={users} brands={brands} currentUser={currentUser} setEditingUser={setEditingUser} setIsUserModalOpen={setIsUserModalOpen} handleDeleteUser={handleDeleteUser} />;
+      // Cập nhật: Truyền auditors vào AnalyticsTab
+      case 'analytics': return <AnalyticsTab availableBrands={availableBrands} auditors={auditors} />;
+      // Cập nhật: Truyền availableBrands thay vì brands vào UsersTab
+      case 'users': return <UsersTab users={users} brands={availableBrands} currentUser={currentUser} setEditingUser={setEditingUser} setIsUserModalOpen={setIsUserModalOpen} handleDeleteUser={handleDeleteUser} />;
       case 'brands': return <BrandsTab availableBrands={availableBrands} currentUser={currentUser} setEditingBrand={setEditingBrand} setIsBrandModalOpen={setIsBrandModalOpen} handleDeleteBrand={handleDeleteBrand} />;
       case 'guidelines': return <GuidelinesTab guidelines={guidelines} availableBrands={availableBrands} brands={brands} currentUser={currentUser} setToast={setToast} showConfirm={showConfirm} />;
       case 'settings': return <SettingsTab systemPrompts={systemPrompts} setSystemPrompts={setSystemPrompts} showConfirm={showConfirm} setToast={setToast} auditRules={auditRules} />;
       case 'products': return <ProductsTab availableBrands={availableBrands} selectedBrandId={selectedBrandId} />;
+      case 'personas': return <PersonasTab availableBrands={availableBrands} selectedBrandId={selectedBrandId} />;
       default: return <DashboardTab currentUser={currentUser} showLoading={!brandsLoaded} availableBrands={availableBrands} setActiveTab={setActiveTab} generations={generations} auditors={auditors} />;
     }
   };
@@ -354,7 +399,7 @@ const App = () => {
         isOpen={isUserModalOpen} 
         onClose={() => setIsUserModalOpen(false)} 
         user={editingUser} 
-        brands={brands} 
+        brands={availableBrands} 
         currentUserRole={currentUser.role} 
         onSave={handleSaveUser} 
       />

@@ -23,6 +23,26 @@ export async function analyzeWebsite(websiteUrl: string): Promise<AnalysisResult
 }
 
 /**
+ * Phân tích thương hiệu từ File thông qua Backend
+ */
+export async function analyzeFile(file: File): Promise<AnalysisResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${BASE_URL}/brand-guidelines/analyze-file`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const result = await res.json();
+  if (!res.ok || !result.success) {
+    throw new Error(result.error || "Không thể phân tích file này");
+  }
+
+  return result.data;
+}
+
+/**
  * Tạo nội dung thông qua RAG Backend
  */
 export async function generateContent(payload: any) {
@@ -57,6 +77,7 @@ export async function auditContent(payload: any) {
       platform: payload.platform,
       language: payload.language,
       product: payload.product,
+      products: payload.products, // Add products array support
       rules: payload.rules,
       platformRules: payload.platformRules
     }),
@@ -79,10 +100,14 @@ export async function createGuidelineFromFile(brandId: string, brandName: string
     method: "POST",
     body: formData,
   });
+  
+  const data = await res.json();
+
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
     throw new Error(data.error || "Upload guideline thất bại");
   }
+
+  return data; // Trả về { success: true, id: guideId, ... }
 }
 
 export async function scrapeWebsiteContent(url: string): Promise<string> {
@@ -111,6 +136,22 @@ export async function createUserApi(payload: any, token: string) {
   const result = await response.json();
   if (!response.ok) {
     throw new Error(result.error || "Failed to create user");
+  }
+  return result;
+}
+
+export async function deleteUserApi(userId: string, token: string) {
+  const response = await fetch(`${BASE_URL}/delete-user`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ userId }),
+  });
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.error || "Failed to delete user");
   }
   return result;
 }

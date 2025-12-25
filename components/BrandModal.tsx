@@ -4,7 +4,7 @@ import { FileText, Globe, X, Upload, Tag, Target, Palette, MessageSquare, Shield
 import { db } from '../firebase';
 import firebase from '../firebase';
 import { Brand, AnalysisResult, User } from '../types';
-import { createGuidelineFromFile, analyzeWebsite } from '../services/api';
+import { createGuidelineFromFile, analyzeWebsite, analyzeFile, approveGuideline } from '../services/api';
 
 interface BrandModalProps {
   isOpen: boolean;
@@ -109,6 +109,20 @@ const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, onSave, brand,
     }
   };
 
+  const handleAnalyzeFile = async () => {
+    if (!guidelineFile) { setPreviewError('Vui lòng chọn file'); return; }
+    setPreviewError('');
+    setIsAnalyzingPreview(true);
+    try {
+        const data = await analyzeFile(guidelineFile);
+        applyAnalysisToBrand(data);
+    } catch (err: any) {
+        setPreviewError(err.message || "Không thể phân tích file này.");
+    } finally {
+        setIsAnalyzingPreview(false);
+    }
+  };
+
   const handleSubmit = async () => {
     const brandName = formData.name?.trim();
     if (!brandName) {
@@ -118,6 +132,7 @@ const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, onSave, brand,
     
     setIsSaving(true);
     try {
+      const isNew = !brand; // Check if creating new brand
       const brandId = formData.id || Date.now().toString();
       const finalData: Brand = { 
         ...formData as Brand, 
@@ -129,24 +144,40 @@ const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, onSave, brand,
 
       await db.collection("brands").doc(brandId).set(finalData, { merge: true });
 
+      // LINK BRAND TO OWNER IF APPLICABLE
+      if (isNew && currentUser.role === 'brand_owner') {
+        await db.collection('users').doc(currentUser.uid).update({
+          ownedBrandIds: firebase.firestore.FieldValue.arrayUnion(brandId)
+        });
+      }
+
+      // AUTO-APPROVE LOGIC
       if (initialGuidelineType === "file" && guidelineFile) {
-        await createGuidelineFromFile(brandId, brandName, guidelineFile, currentUser);
+        setToast({ type: "info", message: "Đang upload và xử lý guideline..." });
+        const uploadRes = await createGuidelineFromFile(brandId, brandName, guidelineFile, currentUser);
+        if (uploadRes && uploadRes.id) {
+           await approveGuideline(uploadRes.id, true);
+        }
       } else if (initialGuidelineType === "website" && websiteUrl.trim()) {
         const timestamp = Date.now();
         const guideId = `GUIDE_${brandId}_AUTO_${timestamp}`;
+        
         await db.collection("brand_guidelines").doc(guideId).set({
           id: guideId,
           brand_id: brandId,
           type: "auto_generated",
-          status: "pending",
+          status: "pending", 
           description: `Auto-generated from ${websiteUrl}`,
           file_name: `${brandName}-auto.md`,
           guideline_text: `# Brand Analysis from ${websiteUrl}\n\n${formData.summary || ''}`,
           created_at: firebase.firestore.FieldValue.serverTimestamp(),
         });
+
+        setToast({ type: "info", message: "Đang xử lý dữ liệu AI (Embedding)..." });
+        await approveGuideline(guideId, false);
       }
 
-      setToast({ type: "success", message: "Đã lưu Brand thành công!" });
+      setToast({ type: "success", message: "Đã lưu Brand và nạp dữ liệu thành công!" });
       onSave?.(finalData);
       onClose();
     } catch (err: any) {
@@ -324,7 +355,10 @@ const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, onSave, brand,
               {initialGuidelineType === "file" && (
                 <div className="space-y-4 animate-in">
                   <div className="bg-slate-50 p-10 rounded-[2.5rem] border-2 border-dashed border-slate-200 text-center relative group transition-all hover:border-blue-200">
-                    <input type="file" id="file-upload" className="hidden" onChange={(e) => setGuidelineFile(e.target.files?.[0] || null)} />
+                    <input type="file" id="file-upload" className="hidden" onChange={(e) => {
+                      setGuidelineFile(e.target.files?.[0] || null);
+                      setPreviewError('');
+                    }} />
                     <label htmlFor="file-upload" className="cursor-pointer">
                         <div className="w-20 h-20 bg-white rounded-3xl shadow-sm flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform">
                           <FileText size={36} className="text-[#01ccff]" />
@@ -333,6 +367,16 @@ const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, onSave, brand,
                         <p className="text-xs font-bold text-slate-400 mt-1">Hỗ trợ PDF, DOCX, MD...</p>
                     </label>
                   </div>
+
+                  {guidelineFile && (
+                    <div className="flex justify-center">
+                         <button onClick={handleAnalyzeFile} disabled={isAnalyzingPreview} className="px-8 py-3 bg-[#102d62] text-white rounded-2xl font-black flex items-center gap-2 disabled:opacity-50 hover:bg-[#0a1d40] transition-colors shadow-lg shadow-blue-900/10">
+                            {isAnalyzingPreview ? <RefreshCw className="animate-spin" size={18}/> : <Sparkles size={18} />} 
+                            Phân tích File
+                         </button>
+                    </div>
+                  )}
+                  {previewError && initialGuidelineType === 'file' && <p className="text-xs text-red-600 font-bold flex items-center gap-1 justify-center"><AlertTriangle size={14}/> {previewError}</p>}
                 </div>
               )}
             </div>

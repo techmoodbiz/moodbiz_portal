@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import {
    Eye, CheckCircle, AlertCircle, X, Activity, Filter, Search,
    Calendar, Globe, ShieldCheck, AlertTriangle, Languages, BrainCircuit,
-   Award, ShoppingBag, Copy, ChevronRight, FileCode, Check, Shield, User as UserIcon, Layout
+   Award, ShoppingBag, Copy, ChevronRight, FileCode, Check, Shield, User as UserIcon, Layout, BookOpen
 } from 'lucide-react';
 import { Auditor, Brand } from '../../types';
 import { SectionHeader, BrandSelector } from '../UIComponents';
@@ -147,7 +147,7 @@ const HistoryAuditsTab: React.FC<HistoryAuditsTabProps> = ({ auditors, brands, a
             </div>
          </div>
 
-         {/* Detail Modal moved outside of animate-in container to bypass stacking context limits */}
+         {/* Detail Modal */}
          {isAuditorDetailOpen && selectedAuditor && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                <div className="bg-white w-full max-w-7xl rounded-[3rem] shadow-2xl flex flex-col h-[92vh] overflow-hidden animate-in zoom-in-95">
@@ -157,7 +157,7 @@ const HistoryAuditsTab: React.FC<HistoryAuditsTabProps> = ({ auditors, brands, a
                            <ShieldCheck size={32} />
                         </div>
                         <div>
-                           <h3 className="text-2xl font-black text-[#102d62] uppercase tracking-tight leading-none mb-2">Detailed Compliance Report</h3>
+                           <h3 className="text-2xl font-black text-[#102d62] uppercase tracking-tight leading-none mb-2">Compliance Report</h3>
                            <div className="flex items-center gap-4">
                               <p className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
                                  <Calendar size={14} /> {formatTimestamp(selectedAuditor.timestamp).full}
@@ -169,7 +169,7 @@ const HistoryAuditsTab: React.FC<HistoryAuditsTabProps> = ({ auditors, brands, a
                      </div>
                      <div className="flex items-center gap-4">
                         <div className="text-right hidden sm:block">
-                           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Audit Status</div>
+                           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</div>
                            <div className={`text-xl font-black uppercase tracking-wider ${(selectedAuditor.output_data?.identified_issues?.length || 0) === 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                               {(selectedAuditor.output_data?.identified_issues?.length || 0) === 0 ? 'Approved' : 'Action Required'}
                            </div>
@@ -181,9 +181,9 @@ const HistoryAuditsTab: React.FC<HistoryAuditsTabProps> = ({ auditors, brands, a
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-10 grid lg:grid-cols-12 gap-8 custom-scrollbar bg-slate-50/20">
+                     {/* LEFT COLUMN: Input */}
                      <div className="lg:col-span-8 space-y-8">
-                        <div className="grid md:grid-cols-2 gap-8">
-                           <div className="bg-white rounded-[2rem] border border-slate-100 shadow-premium overflow-hidden flex flex-col">
+                           <div className="bg-white rounded-[2rem] border border-slate-100 shadow-premium overflow-hidden flex flex-col h-full">
                               <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><FileCode size={14} /> Input Specification</span>
                               </div>
@@ -203,36 +203,9 @@ const HistoryAuditsTab: React.FC<HistoryAuditsTabProps> = ({ auditors, brands, a
                                  </div>
                               </div>
                            </div>
-
-                           <div className="bg-[#102d62] rounded-[2rem] border border-blue-900 shadow-premium overflow-hidden flex flex-col text-white">
-                              <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
-                                 <span className="text-[10px] font-black text-[#01ccff] uppercase tracking-widest flex items-center gap-2"><Shield size={14} className="text-[#01ccff]" /> Optimized Result</span>
-                              </div>
-                              <div className="p-8 text-[14px] text-blue-50 font-medium leading-[1.8] whitespace-pre-wrap flex-1 overflow-y-auto custom-scrollbar">
-                                 {selectedAuditor.output_data?.rewritten_text || "Bản thảo đã chuẩn mực, không cần chỉnh sửa."}
-                              </div>
-                              <div className="px-8 py-4 border-t border-white/5 flex justify-end shrink-0">
-                                 <button onClick={() => { navigator.clipboard.writeText(selectedAuditor.output_data?.rewritten_text || ''); }} className="text-[10px] font-black uppercase text-[#01ccff] hover:underline flex items-center gap-2 tracking-widest">
-                                    <Copy size={14} /> Copy Content
-                                 </button>
-                              </div>
-                           </div>
-                        </div>
-
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-50 shadow-premium shrink-0">
-                           <div className="flex items-center gap-3 mb-8">
-                              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl"><Activity size={20} /></div>
-                              <div>
-                                 <h4 className="text-lg font-black text-[#102d62] uppercase tracking-tight leading-none mb-1">AI Audit Synopsis</h4>
-                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Compliance Overview</p>
-                              </div>
-                           </div>
-                           <p className="text-[16px] text-slate-600 font-medium leading-relaxed italic border-l-4 border-[#01ccff] pl-6 bg-slate-50 p-7 rounded-r-2xl shadow-inner-soft">
-                              "{selectedAuditor.output_data?.summary}"
-                           </p>
-                        </div>
                      </div>
 
+                     {/* RIGHT COLUMN: Violation Log */}
                      <div className="lg:col-span-4 h-full overflow-hidden">
                         <div className="bg-white p-8 rounded-[2.5rem] shadow-premium border border-slate-100 flex flex-col h-full overflow-hidden">
                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8 flex items-center justify-between shrink-0">
@@ -253,6 +226,14 @@ const HistoryAuditsTab: React.FC<HistoryAuditsTabProps> = ({ auditors, brands, a
                                           </span>
                                        </div>
                                        <p className="text-[12px] text-slate-600 font-bold leading-relaxed mb-4">"{issue.problematic_text}"</p>
+                                       
+                                       {/* Rule Citation */}
+                                       {issue.citation && (
+                                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2 flex items-center gap-1 mb-2">
+                                               <BookOpen size={12}/> Source: {issue.citation}
+                                           </p>
+                                       )}
+
                                        <p className="text-[12px] text-slate-500 font-medium leading-relaxed mb-4 italic">{issue.reason}</p>
                                        <div className="bg-emerald-50 p-3.5 rounded-xl border border-emerald-100/50 flex gap-2">
                                           <Check size={14} className="text-emerald-500 mt-0.5 shrink-0" />

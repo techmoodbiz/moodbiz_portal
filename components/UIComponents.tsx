@@ -161,7 +161,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                 onClick={() => handleSelect(opt.value)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all group ${
                   value === opt.value 
-                    ? 'bg-blue-50 text-blue-700 font-bold' 
+                    ? 'bg-blue-50 text-[#102d62] font-black' 
                     : 'hover:bg-slate-50 text-slate-600 hover:text-[#102d62] font-medium'
                 }`}
               >
@@ -169,13 +169,118 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                   {opt.icon && (
                     typeof opt.icon === 'string' 
                       ? <span className="text-base leading-none shrink-0">{opt.icon}</span>
-                      : <opt.icon size={14} className={value === opt.value ? 'text-blue-600 shrink-0' : 'text-slate-400 group-hover:text-blue-500 shrink-0'} />
+                      : <opt.icon size={14} className={value === opt.value ? 'text-[#102d62] shrink-0' : 'text-slate-400 group-hover:text-blue-500 shrink-0'} />
                   )}
                   <span className="text-[12.5px] truncate">{opt.label}</span>
                 </div>
-                {value === opt.value && <Check size={13} strokeWidth={3} className="text-blue-600 shrink-0" />}
+                {value === opt.value && <Check size={13} strokeWidth={3} className="text-[#102d62] shrink-0" />}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- MULTI SELECT ---
+export const MultiSelect: React.FC<{
+  options: SelectOption[];
+  value: string[];
+  onChange: (value: string[]) => void;
+  placeholder?: string;
+  icon?: LucideIcon;
+  disabled?: boolean;
+  className?: string;
+}> = ({ options, value, onChange, placeholder = "Chọn tùy chọn", icon: MainIcon, disabled, className = "" }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleToggle = (val: string) => {
+    if (value.includes(val)) {
+      onChange(value.filter(v => v !== val));
+    } else {
+      onChange([...value, val]);
+    }
+  };
+  
+  const selectedOptions = options.filter(opt => value.includes(opt.value));
+
+  return (
+    <div className={`relative ${className}`} ref={dropdownRef}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full flex items-center gap-2.5 pl-3 pr-8 py-3 bg-white border rounded-2xl transition-all text-left shadow-sm group ${
+          isOpen ? 'border-[#01ccff] ring-4 ring-[#01ccff]/5' : 'border-slate-200 hover:border-slate-300'
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+      >
+        {MainIcon && (
+          <div className={`shrink-0 transition-colors ${isOpen ? 'text-[#01ccff]' : 'text-slate-400 group-hover:text-slate-600'}`}>
+            <MainIcon size={16} strokeWidth={2.5} />
+          </div>
+        )}
+        
+        <div className="flex-1 overflow-hidden">
+           {selectedOptions.length > 0 ? (
+             <div className="flex flex-wrap gap-1.5">
+               {selectedOptions.map(opt => (
+                 <span key={opt.value} className="px-2.5 py-1 bg-[#102d62]/5 text-[#102d62] rounded-lg text-[11px] font-black border border-[#102d62]/10 truncate max-w-[150px]">
+                   {opt.label}
+                 </span>
+               ))}
+             </div>
+           ) : (
+             <span className="block font-bold text-[12px] tracking-tight truncate text-[#102d62]">
+               {placeholder}
+             </span>
+           )}
+        </div>
+
+        <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 transition-transform duration-300 ${isOpen ? 'rotate-180 text-[#01ccff]' : ''}`}>
+          <ChevronDown size={16} strokeWidth={2.5} />
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-[100] mt-1.5 w-full bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top">
+          <div className="max-h-[280px] overflow-y-auto custom-scrollbar p-1.5 space-y-1">
+            {options.map((opt) => {
+               const isSelected = value.includes(opt.value);
+               return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleToggle(opt.value)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all group ${
+                      isSelected 
+                        ? 'bg-blue-50 text-[#102d62] font-black' 
+                        : 'hover:bg-slate-50 text-[#102d62] font-bold'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {opt.icon && (
+                        typeof opt.icon === 'string' 
+                          ? <span className="text-base leading-none shrink-0">{opt.icon}</span>
+                          : <opt.icon size={14} className={isSelected ? 'text-[#102d62] shrink-0' : 'text-slate-400 group-hover:text-blue-500 shrink-0'} />
+                      )}
+                      <span className="text-[12.5px] truncate">{opt.label}</span>
+                    </div>
+                    {isSelected && <Check size={13} strokeWidth={3} className="text-[#102d62] shrink-0" />}
+                  </button>
+               );
+            })}
           </div>
         </div>
       )}

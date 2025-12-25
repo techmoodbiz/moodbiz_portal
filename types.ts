@@ -1,3 +1,4 @@
+
 // ==================
 // User & Domain Types
 // ==================
@@ -21,6 +22,7 @@ export interface AuditRule {
   label: string;
   content: string;
   updated_at: any;
+  apply_to_language?: 'all' | 'vi' | 'en' | 'ja'; // New field for language specific rules
 }
 
 export interface Brand {
@@ -62,6 +64,8 @@ export interface Generation {
     topic: string;
     language: string;
     product_id?: string;
+    product_ids?: string[]; // Added for multi-select support
+    persona_id?: string;
   };
   output_data: string;
   citations?: string[];

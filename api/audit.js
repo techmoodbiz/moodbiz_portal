@@ -1,131 +1,190 @@
 
-// api/audit.js
 const fetch = require('node-fetch');
 
-// --- HELPER: PROMPT TEMPLATES (Moved from Client) ---
+// --- HELPER: PROMPT TEMPLATES ---
 
 function getLanguageInstructions(rules, language, platform, platformRules) {
-  const langRules = rules
-    .filter(r => r.type === 'language')
-    .map(r => `- [SOP ${r.label}]: ${r.content}`)
+  const targetLang =
+    language === 'Vietnamese' ? 'vi' : language === 'English' ? 'en' : language === 'Japanese' ? 'ja' : language;
+
+  const safeRules = Array.isArray(rules) ? rules : [];
+
+  // Sử dụng cấu trúc XML <Rule> để AI dễ dàng trích dẫn
+  const langRules = safeRules
+    .filter((r) => {
+      return (
+        r.type === 'language' &&
+        (!r.apply_to_language ||
+          r.apply_to_language === 'all' ||
+          r.apply_to_language === targetLang)
+      );
+    })
+    .map((r) => `<Rule name="${r.label}">\n${r.content}\n</Rule>`)
     .join('\n');
 
   return `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-LAYER 1: LANGUAGE & STYLE (NGÔN NGỮ)
+LAYER 1: LANGUAGE & FORMATTING (NGÔN NGỮ & ĐỊNH DẠNG)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Tiêu chuẩn Kênh (${platform}): ${platformRules || "Đảm bảo đúng định dạng platform."}
-- Ngôn ngữ mục tiêu: ${language}
-- Quy chuẩn SOP:
-${langRules || "- Đúng chính tả, không thừa dấu cách, không viết hoa vô tội vạ."}
+PHẠM VI (SCOPE): Category "language".
+NHIỆM VỤ: Bạn là "Grammar Nazi". Hãy bắt lỗi chính tả, ngữ pháp, và định dạng văn bản.
 
-NHIỆM VỤ: Soi lỗi trình bày, định dạng, khoảng trắng thừa, và kỹ thuật viết của kênh đăng tải.
+1. KIỂM TRA LỖI DÍNH CHỮ & KHOẢNG TRẮNG (BẮT BUỘC):
+  - [LỖI DÍNH CHỮ]: Thiếu khoảng trắng SAU dấu câu (, . ; : …).
+  - [LỖI THỪA KHOẢNG TRẮNG]: Có khoảng trắng TRƯỚC dấu câu.
+
+2. CÁC QUY CHUẨN SOP CỤ THỂ (ƯU TIÊN CAO NHẤT):
+Dưới đây là các quy tắc cụ thể từ hệ thống SOP. Nếu vi phạm, hãy trích dẫn tên Rule (thuộc tính 'name').
+${langRules || '(Không có quy chuẩn ngôn ngữ bổ sung được cung cấp.)'}
+
+3. PLATFORM COMPLIANCE (CHUẨN KÊNH ${String(platform || '').toUpperCase()}):
+  - ${platformRules || 'Tuân thủ định dạng chuẩn, độ dài và văn phong phù hợp với hành vi đọc trên kênh này.'}
 `;
 }
 
 function getLogicInstructions(rules) {
-  const logicRules = rules
-    .filter(r => r.type === 'ai_logic')
-    .map(r => `- [SOP ${r.label}]: ${r.content}`)
+  const safeRules = Array.isArray(rules) ? rules : [];
+  
+  const logicRulesFromSOP = safeRules
+    .filter((r) => r.type === 'ai_logic')
+    .map((r) => `<Rule name="${r.label}">\n${r.content}\n</Rule>`)
     .join('\n');
 
   return `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-LAYER 2: AI LOGIC & ACCURACY (LOGIC AI)
+LAYER 2: AI LOGIC & ACCURACY (LOGIC & SỰ THẬT)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Quy chuẩn Logic:
-${logicRules || "- Thông tin phải nhất quán.\n- Không có sự mâu thuẫn về số liệu hoặc mốc thời gian."}
+PHẠM VI (SCOPE): Category "ai_logic".
+NEGATIVE CONSTRAINT: KHÔNG báo lỗi chính tả ở đây.
 
-NHIỆM VỤ: Phát hiện thông tin sai lệch, ảo giác AI (hallucinations), mâu thuẫn logic trong lập luận.
+QUY CHUẨN SOP LOGIC:
+${logicRulesFromSOP || '<Rule name="Internal Consistency">Đánh dấu lỗi khi hai đoạn trong cùng bài tự mâu thuẫn nhau.</Rule>'}
+
+NHIỆM VỤ:
+- Phát hiện Hallucinations (Ảo giác AI).
+- Phát hiện Mâu thuẫn nội tại.
+- Phát hiện Lỗi Lập luận.
 `;
 }
 
-function getBrandInstructions(brand, rules) {
-  const brandRules = rules
-    .filter(r => r.type === 'brand')
-    .map(r => `- [SOP ${r.label}]: ${r.content}`)
+function getBrandInstructions(brand = {}, rules) {
+  const safeRules = Array.isArray(rules) ? rules : [];
+
+  const brandRules = safeRules
+    .filter((r) => r.type === 'brand')
+    .map((r) => `<Rule name="${r.label}">\n${r.content}\n</Rule>`)
     .join('\n');
+
+  const personality =
+    (Array.isArray(brand.brand_personality) &&
+      brand.brand_personality.join(', ')) ||
+    brand.personality ||
+    'Chưa xác định';
 
   return `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-LAYER 3: BRAND IDENTITY (THƯƠNG HIỆU - 5 CHECKPOINTS)
+LAYER 3: BRAND IDENTITY (THƯƠNG HIỆU)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Dữ liệu gốc từ Brand Profile của ${brand.name}:
-1. [BRAND VOICE]: ${brand.voice || brand.tone_of_voice || 'Chưa xác định'}
-2. [PERSONALITY]: ${(brand.brand_personality || []).join(', ') || brand.personality || 'Chưa xác định'}
-3. [CORE VALUES]: ${(brand.core_values || []).join(', ') || 'Chưa xác định'}
-4. [DO WORDS - BẮT BUỘC DÙNG]: ${(brand.do_words || []).join(', ') || 'Không có'}
-5. [DON'T WORDS - CẤM DÙNG]: ${(brand.dont_words || []).join(', ') || 'Không có'}
+PHẠM VI (SCOPE): Category "brand".
 
-Quy chuẩn SOP bổ sung:
-${brandRules || "- Tuyệt đối trung thành với bản sắc thương hiệu."}
+Dữ liệu Brand:
+- Voice/Tone: ${brand.voice || brand.tone_of_voice || 'Chưa xác định'}
+- Personality: ${personality}
+- Do Words: ${(Array.isArray(brand.do_words) && brand.do_words.join(', ')) || 'Không có'}
+- Don't Words: ${(Array.isArray(brand.dont_words) && brand.dont_words.join(', ')) || 'Không có'}
 
-NHIỆM VỤ AUDIT KHỐI BRAND:
-- Soi lỗi Voice/Tone: Văn bản có quá trang trọng hay quá suồng sã so với Voice quy định không?
-- Soi lỗi Personality: Có thể hiện đúng tính cách đã định nghĩa không?
-- Soi lỗi Core Values: Nội dung có đi ngược lại hoặc làm sai lệch giá trị cốt lõi không?
-- Soi lỗi Từ Ngữ: Kiểm tra triệt để danh sách "Don't Words" và "Do Words".
+QUY CHUẨN SOP BRAND BỔ SUNG:
+${brandRules || '<Rule name="Brand Consistency">Tuyệt đối trung thành với bản sắc thương hiệu.</Rule>'}
 `;
 }
 
-function getProductInstructions(rules, product) {
-  const productRules = rules
-    .filter(r => r.type === 'product')
-    .map(r => `- [SOP ${r.label}]: ${r.content}`)
+function getProductInstructions(rules, products) {
+  const safeRules = Array.isArray(rules) ? rules : [];
+
+  const productRules = safeRules
+    .filter((r) => r.type === 'product')
+    .map((r) => `<Rule name="${r.label}">\n${r.content}\n</Rule>`)
     .join('\n');
 
-  let productContext = "- Phải nêu đúng lợi ích cốt lõi của giải pháp.";
-  if (product) {
-    productContext = `
-- Tên SP/DV: ${product.name}
-- Tệp khách hàng: ${product.target_audience}
-- Công dụng: ${product.benefits}
-- USP: ${product.usp}
-    `;
+  const productList = Array.isArray(products)
+    ? products
+    : products
+    ? [products]
+    : [];
+
+  let productContext = "Không có sản phẩm cụ thể.";
+  if (productList.length > 0) {
+    productContext = productList
+      .map((p, index) => `[SẢN PHẨM ${index + 1}: ${p.name || 'Chưa đặt tên'}] USP: ${p.usp || ''}`)
+      .join('\n');
   }
 
   return `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 LAYER 4: PRODUCT PROFILE (SẢN PHẨM)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHẠM VI (SCOPE): Category "product".
 ${productContext}
-- SOP Sản phẩm:
-${productRules || "- Không nói sai công dụng hoặc bỏ qua USP quan trọng."}
 
-NHIỆM VỤ: Kiểm tra xem bài viết có đang mô tả sai tính năng, sai USP hoặc nhắm sai đối tượng khách hàng không.
+QUY CHUẨN SOP SẢN PHẨM:
+${productRules || '<Rule name="Product Accuracy">Không được nói sai công dụng hoặc bỏ qua USP quan trọng.</Rule>'}
 `;
+}
+
+// Robust JSON parsing helper
+function safeJSONParse(text) {
+  try {
+    let cleaned = text.trim();
+    const markdownMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (markdownMatch) cleaned = markdownMatch[1];
+    
+    const firstOpen = cleaned.indexOf('{');
+    const lastClose = cleaned.lastIndexOf('}');
+    if (firstOpen !== -1 && lastClose !== -1) {
+      cleaned = cleaned.substring(firstOpen, lastClose + 1);
+      return JSON.parse(cleaned);
+    }
+    return JSON.parse(text);
+  } catch (error) {
+    console.warn("JSON parse failed", error);
+    throw error;
+  }
 }
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { brand, text, platform, language, product, rules, platformRules } = req.body;
-    
-    if (!brand || !text) return res.status(400).json({ error: 'Brand and Text are required' });
+    const {
+      brand,
+      text,
+      platform,
+      language,
+      product,
+      products,
+      rules,
+      platformRules,
+    } = req.body;
 
-    // Assemble the 4-layer prompt on the server side
-    const prompt = `
-Bạn là Hệ thống MOODBIZ AI Auditor v6.0 (Hạng Enterprise).
-Nhiệm vụ của bạn là thực hiện đối soát văn bản dựa trên 4 LỚP QUY CHUẨN ĐỘC LẬP. 
+    if (!brand || !text) {
+      return res.status(400).json({ error: 'Brand and Text are required' });
+    }
 
-PHƯƠNG CHÂM: "Khắt khe - Chính xác - Không khoan nhượng". 
-Nếu văn bản vi phạm bất kỳ tiêu chí nào trong 4 lớp dưới đây, hãy báo lỗi ngay lập tức.
+    const safeRules = Array.isArray(rules) ? rules : [];
+    const targetProducts = products || product;
 
-${getLanguageInstructions(rules || [], language, platform, platformRules)}
-${getLogicInstructions(rules || [])}
-${getBrandInstructions(brand, rules || [])}
-${getProductInstructions(rules || [], product)}
+    const corePrompt = `
+Bạn là Hệ thống MOODBIZ AI Auditor v9.9.
+
+${getLanguageInstructions(safeRules, language, platform, platformRules)}
+${getLogicInstructions(safeRules)}
+${getBrandInstructions(brand, safeRules)}
+${getProductInstructions(safeRules, targetProducts)}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 VĂN BẢN CẦN KIỂM DUYỆT
@@ -133,24 +192,37 @@ VĂN BẢN CẦN KIỂM DUYỆT
 "${text}"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-YÊU CẦU ĐẦU RA (JSON ONLY)
+HƯỚNG DẪN TRÍCH DẪN (CITATION) - QUAN TRỌNG
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Gán lỗi vào đúng 1 trong 4 category: "language", "ai_logic", "brand", "product".
-Lưu ý: Lỗi về Voice, Personality, Core Values, Do/Don't Words PHẢI được xếp vào "brand".
+Hệ thống đã cung cấp các quy tắc SOP dưới dạng thẻ XML <Rule name="...">...</Rule>.
+Khi phát hiện một lỗi, bạn phải xác định nó vi phạm thẻ Rule nào.
 
+1. NẾU VI PHẠM SOP CỤ THỂ:
+   - Tìm thẻ <Rule> tương ứng.
+   - Lấy giá trị của thuộc tính "name" và điền vào trường "citation".
+   - VÍ DỤ: Nếu vi phạm <Rule name="Quy chuẩn tiếng Việt 01">, thì "citation": "Quy chuẩn tiếng Việt 01".
+
+2. NẾU VI PHẠM KIẾN THỨC PHỔ THÔNG (KHÔNG CÓ TRONG SOP):
+   - Điền "Standard Grammar" (nếu là lỗi ngữ pháp cơ bản).
+   - Điền "Universal Logic" (nếu là lỗi logic thông thường).
+   - Điền "Brand Identity" (nếu sai lệch giọng văn chung).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT JSON FORMAT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Trả về JSON hợp lệ (RFC 8259), không dùng Markdown block.
 {
-  "summary": "Tóm tắt ngắn gọn về các rủi ro phát hiện được.",
-  "overall_score": 0-100,
+  "summary": "Tóm tắt đánh giá.",
   "identified_issues": [
     {
       "category": "language | ai_logic | brand | product",
-      "problematic_text": "TRÍCH DẪN NGUYÊN VĂN CÂU/TỪ LỖI",
-      "reason": "Giải thích chi tiết lỗi dựa trên SOP hoặc Profile cụ thể",
+      "problematic_text": "Trích dẫn đoạn lỗi",
+      "citation": "TÊN RULE VI PHẠM (Lấy từ thuộc tính 'name' của thẻ <Rule>)",
+      "reason": "Giải thích ngắn gọn tại sao lỗi.",
       "severity": "High | Medium | Low",
-      "suggestion": "Cách sửa cụ thể để đạt chuẩn"
+      "suggestion": "Đề xuất sửa."
     }
-  ],
-  "rewritten_text": "Bản nội dung đã được tối ưu hoàn toàn, tuân thủ 100% 4 lớp quy chuẩn."
+  ]
 }
 `;
 
@@ -158,9 +230,9 @@ Lưu ý: Lỗi về Voice, Personality, Core Values, Do/Don't Words PHẢI đư�
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
     const requestBody = {
-      contents: [{ parts: [{ text: prompt }] }],
+      contents: [{ parts: [{ text: corePrompt }] }],
       generationConfig: {
-        temperature: 0.4,
+        temperature: 0.1, // Cực thấp để đảm bảo tuân thủ Citation chính xác
         maxOutputTokens: 8192,
         responseMimeType: 'application/json',
       },
@@ -175,16 +247,20 @@ Lưu ý: Lỗi về Voice, Personality, Core Values, Do/Don't Words PHẢI đư�
     const data = await response.json();
     const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-    // Parse JSON result from Gemini
     let jsonResult;
     try {
-        jsonResult = JSON.parse(textResult.replace(/```json?/gi, '').replace(/```/g, ''));
+      jsonResult = safeJSONParse(textResult);
     } catch (parseErr) {
-        jsonResult = { summary: textResult, identified_issues: [], overall_score: 0 };
+      console.error("JSON Parse Error:", parseErr);
+      jsonResult = {
+        summary: "Lỗi định dạng phản hồi từ AI. Vui lòng thử lại.",
+        identified_issues: [],
+      };
     }
 
     return res.status(200).json({ result: jsonResult, success: true });
   } catch (e) {
+    console.error("Audit API Error:", e);
     return res.status(500).json({ error: 'Server error', message: e.message });
   }
 };

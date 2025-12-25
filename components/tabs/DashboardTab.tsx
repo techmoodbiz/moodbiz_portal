@@ -1,9 +1,10 @@
 
-import React from 'react';
-import { PenTool, Activity, Building2, Zap, Users, TrendingUp } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { PenTool, Activity, Building2, Zap, Users, TrendingUp, ShieldCheck } from 'lucide-react';
 import { User, Brand, Generation, Auditor } from '../../types';
-import { COMPANY_STATS, CORE_VALUES } from '../../constants';
+import { CORE_VALUES } from '../../constants';
 import { StatCard, FeatureCard, QuickActionCard, SectionHeader, SkeletonCard, ActivityItem } from '../UIComponents';
+import { db } from '../../firebase';
 
 interface DashboardTabProps {
   currentUser: User;
@@ -22,6 +23,66 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   generations, 
   auditors 
 }) => {
+  // State lưu trữ số liệu thống kê thực tế
+  const [stats, setStats] = useState([
+    { label: 'Brands', value: '0', icon: Building2 },
+    { label: 'Generations', value: '0', icon: Zap },
+    { label: 'Audits', value: '0', icon: ShieldCheck },
+    { label: 'Users', value: '0', icon: Users },
+  ]);
+
+  // Effect lắng nghe dữ liệu từ Firestore
+  useEffect(() => {
+    // 1. Lắng nghe số lượng Brands
+    const unsubBrands = db.collection('brands').onSnapshot(snap => {
+      setStats(prev => {
+        const newStats = [...prev];
+        newStats[0].value = snap.size.toString();
+        return newStats;
+      });
+    });
+
+    // 2. Lắng nghe số lượng Generations
+    const unsubGen = db.collection('generations').onSnapshot(snap => {
+      setStats(prev => {
+        const newStats = [...prev];
+        newStats[1].value = snap.size.toString();
+        return newStats;
+      });
+    });
+
+    // 3. Lắng nghe số lượng Auditors
+    const unsubAudit = db.collection('auditors').onSnapshot(snap => {
+      setStats(prev => {
+        const newStats = [...prev];
+        newStats[2].value = snap.size.toString();
+        return newStats;
+      });
+    });
+
+    // 4. Lắng nghe số lượng Users - CHỈ DÀNH CHO ADMIN HOẶC BRAND OWNER
+    let unsubUsers = () => {};
+    if (currentUser.role === 'admin' || currentUser.role === 'brand_owner') {
+      unsubUsers = db.collection('users').onSnapshot(snap => {
+        setStats(prev => {
+          const newStats = [...prev];
+          newStats[3].value = snap.size.toString();
+          return newStats;
+        });
+      }, (error) => {
+        console.warn("User stats permission check failed:", error.message);
+      });
+    }
+
+    // Cleanup listeners khi component unmount
+    return () => {
+      unsubBrands();
+      unsubGen();
+      unsubAudit();
+      unsubUsers();
+    };
+  }, [currentUser.role]);
+
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4">
       {showLoading ? <SkeletonCard className="h-64" /> : (
@@ -49,13 +110,18 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
         <QuickActionCard title="Kiểm Tra Brand Voice" desc="Audit nội dung để đảm bảo chuẩn giọng văn thương hiệu" icon={Activity} onClick={() => setActiveTab('auditor')} color="cyan" />
       </div>
 
-      {/* Stats & Values */}
+      {/* Stats & Values - Updated with Real Data */}
       <div>
         <SectionHeader title="Con Số Ấn Tượng" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {COMPANY_STATS.map((stat, idx) => (
-            <StatCard key={idx} {...stat} delay={idx * 100} icon={[Building2, Zap, Users, TrendingUp][idx]} />
-          ))}
+          {stats.map((stat, idx) => {
+             // Ẩn Users stat nếu không phải admin/owner
+             if (stat.label === 'Users' && !(currentUser.role === 'admin' || currentUser.role === 'brand_owner')) return null;
+             
+             return (
+               <StatCard key={idx} label={stat.label} value={stat.value} delay={idx * 100} icon={stat.icon} />
+             );
+          })}
         </div>
       </div>
 

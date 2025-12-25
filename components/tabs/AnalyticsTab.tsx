@@ -1,32 +1,20 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Activity, ShieldAlert, Languages, BrainCircuit, Award, ShoppingBag, BarChart2 } from 'lucide-react';
 import { Brand, Auditor } from '../../types';
 import { SectionHeader, BrandSelector } from '../UIComponents';
-import { db } from '../../firebase';
 import { AUDIT_CATEGORIES } from '../../constants';
 
 interface AnalyticsTabProps {
   availableBrands: Brand[];
+  auditors: Auditor[];
 }
 
-const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ availableBrands }) => {
+const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ availableBrands, auditors }) => {
   const [selectedAnalyticsBrand, setSelectedAnalyticsBrand] = useState('all');
-  const [audits, setAudits] = useState<Auditor[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    let query = db.collection('auditors').orderBy('timestamp', 'desc').limit(500);
-    const unsub = query.onSnapshot(snap => {
-      setAudits(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Auditor)));
-      setLoading(false);
-    });
-    return unsub;
-  }, []);
 
   const stats = useMemo(() => {
-    const filtered = audits.filter(a => selectedAnalyticsBrand === 'all' || a.brand_id === selectedAnalyticsBrand);
+    const filtered = auditors.filter(a => selectedAnalyticsBrand === 'all' || a.brand_id === selectedAnalyticsBrand);
     const totals = { language: 0, ai_logic: 0, brand: 0, product: 0 };
 
     filtered.forEach(a => {
@@ -40,7 +28,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ availableBrands }) => {
       });
     });
     return { totals, count: filtered.length };
-  }, [audits, selectedAnalyticsBrand]);
+  }, [auditors, selectedAnalyticsBrand]);
 
   const CategoryCard = ({ id, count }: { id: keyof typeof AUDIT_CATEGORIES, count: number }) => {
     const config = AUDIT_CATEGORIES[id];
